@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduTask - Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -89,7 +90,6 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Toast Notification */
         #toast-container {
             position: fixed;
             top: 1.5rem;
@@ -123,7 +123,7 @@
 </head>
 <body class="antialiased">
 
-    <div id="loader" class="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-[100]">
+    <div id="loader" class="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-[100] hidden">
         <div class="spinner" role="status" aria-label="Memuat..."></div>
     </div>
 
@@ -179,76 +179,27 @@
     </div>
 
     <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
-        <!-- Modals will be populated here -->
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- DATABASE LOKAL ---
-            let allUsers = [];
-            let allTugas = [];
-
-            // --- FUNGSI PERSISTENSI DATA ---
-            function saveData() {
-                try {
-                    localStorage.setItem('edutask_users', JSON.stringify(allUsers));
-                    const tugasToSave = allTugas.map(tugas => {
-                        const newTugas = { ...tugas, deadline: tugas.deadline.toISOString() };
-                        if (tugas.tanggalTerkumpul) {
-                            newTugas.tanggalTerkumpul = tugas.tanggalTerkumpul.toISOString();
-                        }
-                        return newTugas;
-                    });
-                    localStorage.setItem('edutask_tugas', JSON.stringify(tugasToSave));
-                } catch (e) {
-                    console.error("Gagal menyimpan data:", e);
-                }
-            }
-
-            function loadData() {
-                try {
-                    const usersData = localStorage.getItem('edutask_users');
-                    const tugasData = localStorage.getItem('edutask_tugas');
-
-                    if (usersData) {
-                        allUsers = JSON.parse(usersData);
-                    }
-                    if (tugasData) {
-                        allTugas = JSON.parse(tugasData).map(tugas => {
-                            const newTugas = { ...tugas, deadline: new Date(tugas.deadline) };
-                            if (tugas.tanggalTerkumpul) {
-                                newTugas.tanggalTerkumpul = new Date(tugas.tanggalTerkumpul);
-                            }
-                            return newTugas;
-                        });
-                    }
-                    
-                    if (!usersData || allUsers.length === 0) {
-                        seedData();
-                        saveData();
-                    }
-                } catch (e) {
-                    console.error("Gagal memuat data, kembali ke data awal:", e);
-                    seedData();
-                }
-            }
+        document.addEventListener('DOMContentLoaded', async () => {
+            // --- KONEKSI SUPABASE ---
+            // Ganti dengan URL dan Kunci Anon dari proyek Supabase Anda
+            const SUPABASE_URL = 'https://rfprtnzcyucobdxwlecx.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcHJ0bnpjeXVjb2JkeHdsZWN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMjY2MzQsImV4cCI6MjA3NjYwMjYzNH0.LhJGZBObLRNvL8xjfa7Onx-eKkp1XzciwkdtkMGBl-4';
             
-            // --- DATA AWAL (SEEDING) ---
-            function seedData() {
-                allUsers = [
-                    {nama: "Siswa A", role: "siswa", username: "siswa A", id: 1, password: '123'},
-                    {nama: "Siswa B", role: "siswa", username: "siswa B", id: 2, password: '123'},
-                    {nama: "Siswa C", role: "siswa", username: "siswa C", id: 3, password: '123'},
-                    {nama: "Siswa", role: "siswa", username: "siswa", id: 4, password: '123'},
-                    {nama: "Guru", role: "guru", username: "guru", id: 104, password: '123'},
-                    {nama: "Admin Sekolah", role: "admin", username: "admin", id: 999, password: '123'}
-                ];
-                allTugas = [];
+            let supabaseClient; // Menggunakan nama variabel yang berbeda untuk menghindari konflik
+            if (SUPABASE_URL === 'URL_PROYEK_SUPABASE_ANDA' || SUPABASE_ANON_KEY === 'KUNCI_ANON_PUBLIK_ANDA') {
+                alert('PENTING: Harap konfigurasikan URL dan Kunci Supabase Anda di dalam file HTML agar aplikasi dapat berfungsi.');
+            } else {
+                 // Inisialisasi client menggunakan objek 'supabase' dari library global
+                 const { createClient } = supabase;
+                 supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             }
+
 
             // --- VARIABEL STATUS APLIKASI ---
             let currentUser = null;
-            let currentSiswaTugas = [];
             let currentFilter = 'Semua';
             let currentSearch = '';
             let currentSortSiswa = 'deadline';
@@ -272,42 +223,27 @@
             // --- FUNGSI BANTU (HELPERS) ---
             const showLoader = () => loader.classList.remove('hidden');
             const hideLoader = () => loader.classList.add('hidden');
-            const formatTanggal = date => date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            const formatTanggal = dateStr => new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
             const showToast = (message, type = 'success') => {
                 const toast = document.createElement('div');
                 toast.className = `toast toast-${type}`;
                 toast.textContent = message;
                 toastContainer.appendChild(toast);
-                setTimeout(() => {
-                    toast.remove();
-                }, 3000);
-            };
-            
-            const readFileAsDataURL = (file) => {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result);
-                    reader.onerror = (error) => reject(error);
-                    reader.readAsDataURL(file);
-                });
+                setTimeout(() => { toast.remove(); }, 3000);
             };
 
             const openModal = (modalHTML) => {
                 modalBackdrop.innerHTML = modalHTML;
                 modalBackdrop.classList.remove('hidden');
                 const modalElement = modalBackdrop.firstElementChild;
-                if (modalElement) {
-                    modalElement.classList.remove('hidden');
-                    modalElement.classList.add('fade-in-up');
-                }
+                if (modalElement) modalElement.classList.add('fade-in-up');
             };
 
             const closeModal = () => {
                 const modalElement = modalBackdrop.firstElementChild;
                 if (modalElement) {
                     modalElement.classList.add('fade-out-down');
-                    modalElement.classList.remove('fade-in-up');
                     setTimeout(() => {
                         modalBackdrop.classList.add('hidden');
                         modalBackdrop.innerHTML = '';
@@ -320,15 +256,17 @@
             const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func(...args), delay); }; };
 
             const generateFilePreviewHTML = (data) => {
-                if (!data.fileName) {
-                    return `<div class="mb-4 bg-yellow-50 text-yellow-700 text-sm p-3 rounded-lg border border-yellow-200">Siswa belum mengunggah file untuk tugas ini.</div>`;
-                }
-
-                if (data.fileType.startsWith('image/')) {
+                const fileUrl = data.fileUrl || data.lampiranGuruUrl;
+                const fileName = data.fileName || data.lampiranGuruFilename;
+                const fileType = data.fileType || '';
+                
+                if (!fileName) return `<div class="mb-4 bg-yellow-50 text-yellow-700 text-sm p-3 rounded-lg border border-yellow-200">Tidak ada file lampiran.</div>`;
+                
+                if (fileType.startsWith('image/')) {
                     return `<div class="mb-4">
                         <p class="text-sm font-medium text-gray-700 mb-2">Pratinjau Gambar:</p>
-                        <a href="${data.fileUrl}" target="_blank" rel="noopener noreferrer" title="Buka gambar di tab baru">
-                            <img src="${data.fileUrl}" alt="Pratinjau Tugas ${data.fileName}" class="w-full h-auto max-h-48 object-contain rounded-lg border bg-gray-100">
+                        <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" title="Buka gambar di tab baru">
+                            <img src="${fileUrl}" alt="Pratinjau Tugas ${fileName}" class="w-full h-auto max-h-48 object-contain rounded-lg border bg-gray-100">
                         </a>
                     </div>`;
                 } else {
@@ -337,9 +275,9 @@
                         <div class="bg-gray-50 p-3 rounded-lg flex items-center justify-between border">
                             <div class="flex items-center space-x-3 overflow-hidden">
                                 <svg class="w-8 h-8 text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
-                                <span class="text-sm text-gray-800 truncate" title="${data.fileName}">${data.fileName}</span>
+                                <span class="text-sm text-gray-800 truncate" title="${fileName}">${fileName}</span>
                             </div>
-                            <a href="${data.fileUrl}" download="${data.fileName}" class="flex-shrink-0 p-2 text-gray-500 hover:bg-gray-200 hover:text-gray-800 rounded-full transition-colors" title="Unduh File">
+                            <a href="${fileUrl}" download="${fileName}" class="flex-shrink-0 p-2 text-gray-500 hover:bg-gray-200 hover:text-gray-800 rounded-full transition-colors" title="Unduh File">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                             </a>
                         </div>
@@ -348,84 +286,81 @@
             };
 
             // --- FUNGSI RENDER UTAMA ---
-
-            function refreshUI() {
-                saveData();
+            async function refreshUI() {
                 if (!currentUser) return;
-                showView(currentUser.role);
+                await showView(currentUser.role);
             }
 
-            const handleFilterAndSearch = (sourceData) => sourceData.filter(t => (currentFilter === 'Semua' || t.status === currentFilter) && (!currentSearch || t.judul.toLowerCase().includes(currentSearch.toLowerCase()) || t.mapel.toLowerCase().includes(currentSearch.toLowerCase())));
-
-            const renderFilteredSiswaTugas = () => {
-                let sortedData = [...currentSiswaTugas];
-                if (currentSortSiswa === 'deadline') {
-                    sortedData.sort((a, b) => a.deadline - b.deadline);
-                } else if (currentSortSiswa === 'terbaru') {
-                    sortedData.sort((a, b) => b.id - a.id);
-                } else if (currentSortSiswa === 'judul') {
-                    sortedData.sort((a, b) => a.judul.localeCompare(b.judul));
-                }
-                const finalData = handleFilterAndSearch(sortedData);
-                renderSiswaView(finalData);
-            };
-            
-            const renderSiswaView = (filteredData) => {
+            const renderSiswaView = (tugasList) => {
                 const listContainer = document.getElementById('task-list-container');
                 if (!listContainer) return;
                 
+                let filteredData = tugasList.filter(t => (currentFilter === 'Semua' || t.status === currentFilter) && (!currentSearch || t.judul.toLowerCase().includes(currentSearch.toLowerCase()) || t.mapel.toLowerCase().includes(currentSearch.toLowerCase())));
+                
+                if (currentSortSiswa === 'deadline') filteredData.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+                else if (currentSortSiswa === 'terbaru') filteredData.sort((a, b) => b.id - a.id);
+                else if (currentSortSiswa === 'judul') filteredData.sort((a, b) => a.judul.localeCompare(b.judul));
+
                 const content = filteredData.length > 0 ? filteredData.map(tugas => {
-                            const isLate = new Date() > tugas.deadline && tugas.status !== 'Dinilai';
-                            let statusInfo;
-                            switch(tugas.status) {
-                                case 'Belum Dikerjakan': statusInfo = { text: 'Belum Dikerjakan', color: 'yellow', icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>` }; break;
-                                case 'Terkirim': statusInfo = { text: 'Terkirim', color: 'blue', icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>` }; break;
-                                case 'Dinilai': statusInfo = { text: 'Sudah Dinilai', color: 'green', icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>` }; break;
-                            }
-                            const lampiranGuruHTML = tugas.lampiranGuru ? `<div class="mt-4 pt-4 border-t border-gray-100">
-                                <p class="text-xs font-medium text-gray-800 mb-2">Lampiran dari Guru:</p>
-                                <a href="${tugas.lampiranGuru.url}" download="${tugas.lampiranGuru.name}" class="flex items-center space-x-2 text-sm text-indigo-700 bg-indigo-50 hover:bg-indigo-100 p-2 rounded-lg">
-                                    <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3.375 3.375 0 0119.5 7.372l-10.94 10.94a2.25 2.25 0 01-3.182-3.182l7.693-7.693a.75.75 0 011.06 1.06l-7.693 7.693a1.125 1.125 0 001.591 1.591l10.94-10.94a2.25 2.25 0 00-3.182-3.182l-7.693 7.693a4.5 4.5 0 006.364 6.364l7.693-7.693a.75.75 0 011.06-1.06z"></path></svg>
-                                    <span class="truncate">${tugas.lampiranGuru.name}</span>
-                                </a>
-                            </div>` : '';
-                            return `<div class="fade-in-up bg-white p-6 rounded-2xl soft-shadow flex flex-col justify-between border-t-4 ${isLate ? 'border-red-500' : `border-indigo-500`}"><div class="flex-grow">
-                                        <div class="flex justify-between items-start mb-2"><h3 class="text-lg font-bold text-gray-800">${tugas.judul}</h3><span class="flex items-center gap-1.5 bg-${statusInfo.color}-100 text-${statusInfo.color}-800 text-xs font-medium px-2 py-1 rounded-full" aria-label="Status tugas: ${statusInfo.text}">${statusInfo.icon} ${statusInfo.text}</span></div>
-                                        <p class="text-sm text-gray-500">Mapel: ${tugas.mapel}</p>
-                                        <p class="text-sm text-gray-500 mt-1">Batas Waktu: <span class="${isLate ? 'text-red-600 font-semibold' : ''}">${formatTanggal(tugas.deadline)}</span></p>
-                                        ${lampiranGuruHTML}
-                                    </div><div class="mt-6">
-                                        ${tugas.komentarGuru ? `<div class="mb-4 pt-4 border-t border-gray-100 text-xs"><p class="font-medium text-gray-800">Masukan Guru:</p><p class="text-gray-600 italic">"${tugas.komentarGuru}"</p></div>` : ''}
-                                        ${tugas.status === 'Belum Dikerjakan' ? `<button data-id="${tugas.id}" class="btn-unggah w-full btn-primary px-5 py-2.5 text-white text-sm font-medium rounded-xl">Unggah Tugas</button>` : ''}
-                                        ${tugas.status === 'Dinilai' ? `<div class="text-center bg-green-50 text-green-700 p-2 rounded-lg"><p class="text-xs">NILAI AKHIR</p><p class="text-2xl font-bold">${tugas.nilai}</p></div>` : ''}
-                                        ${(tugas.status === 'Terkirim' || tugas.status === 'Dinilai') && tugas.file ? `<button data-id="${tugas.id}" class="btn-lihat-tugas w-full mt-2 text-sm text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-semibold py-2 px-3 rounded-lg transition-colors">Lihat Tugas Terkirim</button>` : ''}
-                                    </div></div>`;
-                        }).join('') : renderEmptyState();
+                    const deadline = new Date(tugas.deadline);
+                    const isLate = new Date() > deadline && tugas.status !== 'Dinilai';
+                    let statusInfo;
+                    switch(tugas.status) {
+                        case 'Belum Dikerjakan': statusInfo = { text: 'Belum Dikerjakan', color: 'yellow', icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>` }; break;
+                        case 'Terkirim': statusInfo = { text: 'Terkirim', color: 'blue', icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>` }; break;
+                        case 'Dinilai': statusInfo = { text: 'Sudah Dinilai', color: 'green', icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>` }; break;
+                    }
+                    const lampiranGuruHTML = tugas.lampiran_guru_url ? `<div class="mt-4 pt-4 border-t border-gray-100">
+                        <p class="text-xs font-medium text-gray-800 mb-2">Lampiran dari Guru:</p>
+                        <a href="${tugas.lampiran_guru_url}" download="${tugas.lampiran_guru_filename}" class="flex items-center space-x-2 text-sm text-indigo-700 bg-indigo-50 hover:bg-indigo-100 p-2 rounded-lg">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3.375 3.375 0 0119.5 7.372l-10.94 10.94a2.25 2.25 0 01-3.182-3.182l7.693-7.693a.75.75 0 011.06 1.06l-7.693 7.693a1.125 1.125 0 001.591 1.591l10.94-10.94a2.25 2.25 0 00-3.182-3.182l-7.693 7.693a4.5 4.5 0 006.364 6.364l7.693-7.693a.75.75 0 011.06-1.06z"></path></svg>
+                            <span class="truncate">${tugas.lampiran_guru_filename}</span>
+                        </a>
+                    </div>` : '';
+                    return `<div class="fade-in-up bg-white p-6 rounded-2xl soft-shadow flex flex-col justify-between border-t-4 ${isLate ? 'border-red-500' : 'border-indigo-500'}">
+                                <div>
+                                    <div class="flex justify-between items-start mb-2"><h3 class="text-lg font-bold text-gray-800">${tugas.judul}</h3><span class="flex items-center gap-1.5 bg-${statusInfo.color}-100 text-${statusInfo.color}-800 text-xs font-medium px-2 py-1 rounded-full">${statusInfo.icon} ${statusInfo.text}</span></div>
+                                    <p class="text-sm text-gray-500">Mapel: ${tugas.mapel}</p>
+                                    <p class="text-sm text-gray-500 mt-1">Batas Waktu: <span class="${isLate ? 'text-red-600 font-semibold' : ''}">${formatTanggal(tugas.deadline)}</span></p>
+                                    ${lampiranGuruHTML}
+                                </div>
+                                <div class="mt-6">
+                                    ${tugas.komentar_guru ? `<div class="mb-4 pt-4 border-t border-gray-100 text-xs"><p class="font-medium text-gray-800">Masukan Guru:</p><p class="text-gray-600 italic">"${tugas.komentar_guru}"</p></div>` : ''}
+                                    ${tugas.status === 'Belum Dikerjakan' ? `<button data-id="${tugas.id}" class="btn-unggah w-full btn-primary px-5 py-2.5 text-white text-sm font-medium rounded-xl">Unggah Tugas</button>` : ''}
+                                    ${tugas.status === 'Dinilai' ? `<div class="text-center bg-green-50 text-green-700 p-2 rounded-lg"><p class="text-xs">NILAI AKHIR</p><p class="text-2xl font-bold">${tugas.nilai}</p></div>` : ''}
+                                    ${(tugas.status === 'Terkirim' || tugas.status === 'Dinilai') && tugas.file_url ? `<button data-id="${tugas.id}" class="btn-lihat-tugas w-full mt-2 text-sm text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-semibold py-2 px-3 rounded-lg">Lihat Tugas Terkirim</button>` : ''}
+                                </div>
+                            </div>`;
+                }).join('') : renderEmptyState();
                 listContainer.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">${content}</div>`;
             };
 
-            const renderGuruView = () => {
+            const renderGuruView = async () => {
                 const guruContent = document.getElementById('guru-content');
                 if (!guruContent) return;
-
+                guruContent.innerHTML = renderSkeleton(4);
+                
                 const activeTab = document.querySelector('.guru-tab.tab-active')?.dataset.view || 'diberikan';
+                
+                const { data: allTugas, error } = await supabaseClient.from('tugas').select('*');
+                if (error) { showToast('Gagal memuat data tugas.', 'danger'); return; }
+
                 let contentHTML = '';
                 let headerControlsHTML = '';
 
                 if (activeTab === 'terkumpul') {
                     headerControlsHTML = `
                     <div class="relative w-full md:max-w-xs">
-                        <input id="search-guru-input" type="text" placeholder="Cari berdasarkan siswa atau tugas..." class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="${currentGuruSearch}">
+                        <input id="search-guru-input" type="text" placeholder="Cari siswa atau tugas..." class="w-full pl-10 pr-4 py-2.5 border rounded-xl" value="${currentGuruSearch}">
                         <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
-                    <div id="guru-filter-buttons" class="flex-shrink-0 bg-gray-100 p-1 rounded-xl flex items-center space-x-1">
+                    <div class="flex-shrink-0 bg-gray-100 p-1 rounded-xl flex space-x-1">
                         <button data-filter="Semua" class="guru-filter-btn ${currentGuruFilter === 'Semua' ? 'bg-white text-indigo-600' : 'text-gray-600'} px-3 py-1.5 rounded-lg text-sm font-semibold">Semua</button>
                         <button data-filter="Terkirim" class="guru-filter-btn ${currentGuruFilter === 'Terkirim' ? 'bg-white text-indigo-600' : 'text-gray-600'} px-3 py-1.5 rounded-lg text-sm font-semibold">Perlu Diperiksa</button>
                         <button data-filter="Dinilai" class="guru-filter-btn ${currentGuruFilter === 'Dinilai' ? 'bg-white text-indigo-600' : 'text-gray-600'} px-3 py-1.5 rounded-lg text-sm font-semibold">Sudah Dinilai</button>
                     </div>
                     <div>
-                        <label for="sort-guru" class="sr-only">Urutkan</label>
-                        <select id="sort-guru" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
+                        <select id="sort-guru" class="bg-white border border-gray-300 text-sm rounded-lg block w-full p-2.5">
                             <option value="terbaru" ${currentSortGuru === 'terbaru' ? 'selected' : ''}>Pengumpulan Terbaru</option>
                             <option value="nama" ${currentSortGuru === 'nama' ? 'selected' : ''}>Nama Siswa (A-Z)</option>
                         </select>
@@ -433,74 +368,61 @@
 
                     let tugasTerkumpul = allTugas.filter(t => {
                         const filterMatch = currentGuruFilter === 'Semua' ? ["Terkirim", "Dinilai"].includes(t.status) : t.status === currentGuruFilter;
-                        const searchMatch = !currentGuruSearch || t.namaSiswa.toLowerCase().includes(currentGuruSearch.toLowerCase()) || t.judul.toLowerCase().includes(currentGuruSearch.toLowerCase());
+                        const searchMatch = !currentGuruSearch || t.nama_siswa.toLowerCase().includes(currentGuruSearch.toLowerCase()) || t.judul.toLowerCase().includes(currentGuruSearch.toLowerCase());
                         return filterMatch && searchMatch;
                     });
                     
-                    if (currentSortGuru === 'terbaru') {
-                        tugasTerkumpul.sort((a, b) => (b.tanggalTerkumpul || 0) - (a.tanggalTerkumpul || 0));
-                    } else if (currentSortGuru === 'nama') {
-                        tugasTerkumpul.sort((a, b) => a.namaSiswa.localeCompare(b.namaSiswa));
-                    }
+                    if (currentSortGuru === 'terbaru') tugasTerkumpul.sort((a, b) => new Date(b.tanggal_terkumpul) - new Date(a.tanggal_terkumpul));
+                    else if (currentSortGuru === 'nama') tugasTerkumpul.sort((a, b) => a.nama_siswa.localeCompare(b.nama_siswa));
 
-                    contentHTML = `<div class="space-y-4">${tugasTerkumpul.length > 0 ? tugasTerkumpul.map(tugas => `<div class="bg-white p-5 rounded-2xl soft-shadow transition-all hover:shadow-lg"><div class="flex flex-col md:flex-row justify-between items-start"><div class="flex-grow">
-                                                <h3 class="text-lg font-semibold text-gray-800">${tugas.judul}</h3>
-                                                <p class="text-sm text-gray-500 mt-1">Dari: <b class="text-gray-700">${tugas.namaSiswa}</b> • Mapel: ${tugas.mapel}</p>
-                                            </div><div class="mt-4 md:mt-0 flex items-center space-x-4 flex-shrink-0">
-                                                ${tugas.status === 'Terkirim' ? `<span class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-1 rounded-full">Perlu Diperiksa</span><button data-id="${tugas.id}" data-nama="${tugas.namaSiswa}" data-judul="${tugas.judul}" data-file-name="${tugas.file?.name || ''}" data-file-url="${tugas.file?.url || ''}" data-file-type="${tugas.file?.type || ''}" class="btn-komentar px-5 py-2 bg-green-600 text-white text-sm font-medium rounded-xl hover:bg-green-700">Periksa</button>` : `<div class="text-right flex items-center space-x-3"><p class="text-3xl font-bold text-green-600">${tugas.nilai}</p> <button data-id="${tugas.id}" data-nama="${tugas.namaSiswa}" data-judul="${tugas.judul}" data-nilai="${tugas.nilai}" data-komentar="${tugas.komentarGuru || ''}" data-file-name="${tugas.file?.name || ''}" data-file-url="${tugas.file?.url || ''}" data-file-type="${tugas.file?.type || ''}" class="btn-komentar text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200">Ubah</button></div>`}
-                                            </div></div></div>`).join('') : renderEmptyState()}</div>`;
+                    contentHTML = `<div class="space-y-4">${tugasTerkumpul.length > 0 ? tugasTerkumpul.map(tugas => `<div class="bg-white p-5 rounded-2xl soft-shadow"><div class="flex flex-col md:flex-row justify-between items-start">
+                        <div class="flex-grow">
+                            <h3 class="text-lg font-semibold">${tugas.judul}</h3>
+                            <p class="text-sm text-gray-500 mt-1">Dari: <b>${tugas.nama_siswa}</b> • Mapel: ${tugas.mapel}</p>
+                        </div>
+                        <div class="mt-4 md:mt-0 flex items-center space-x-4 flex-shrink-0">
+                            ${tugas.status === 'Terkirim' ? `<span class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-1 rounded-full">Perlu Diperiksa</span><button data-id='${JSON.stringify(tugas)}' class="btn-komentar px-5 py-2 bg-green-600 text-white text-sm font-medium rounded-xl">Periksa</button>` : `<div class="text-right flex items-center space-x-3"><p class="text-3xl font-bold text-green-600">${tugas.nilai}</p><button data-id='${JSON.stringify(tugas)}' class="btn-komentar text-xs px-3 py-1.5 bg-gray-100 rounded-md">Ubah</button></div>`}
+                        </div>
+                    </div></div>`).join('') : renderEmptyState()}</div>`;
                 } else { // activeTab === 'diberikan'
                     const groupedTugas = allTugas.reduce((acc, tugas) => {
-                        const key = `${tugas.judul}|${tugas.mapel}|${tugas.deadline.toISOString()}`;
-                        if (!acc[key]) {
-                            acc[key] = {
-                                judul: tugas.judul,
-                                mapel: tugas.mapel,
-                                deadline: tugas.deadline,
-                                siswa: []
-                            };
-                        }
-                        acc[key].siswa.push({ namaSiswa: tugas.namaSiswa, status: tugas.status, nilai: tugas.nilai });
+                        const key = `${tugas.judul}|${tugas.mapel}|${tugas.deadline}`;
+                        if (!acc[key]) acc[key] = { ...tugas, siswa: [] };
+                        acc[key].siswa.push({ status: tugas.status });
                         return acc;
                     }, {});
 
                     const tugasDiberikan = Object.values(groupedTugas);
-                    if (tugasDiberikan.length > 0) {
-                        contentHTML = `<div class="space-y-4">${tugasDiberikan.map(group => {
-                            const totalSiswa = group.siswa.length;
-                            const terkumpulCount = group.siswa.filter(s => s.status !== 'Belum Dikerjakan').length;
-                            const dinilaiCount = group.siswa.filter(s => s.status === 'Dinilai').length;
-                            return `<div class="bg-white p-5 rounded-2xl soft-shadow">
-                                    <h3 class="text-lg font-semibold text-gray-800">${group.judul}</h3>
-                                    <p class="text-sm text-gray-500 mt-1">Mapel: ${group.mapel} | Batas Waktu: ${formatTanggal(group.deadline)}</p>
-                                    <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-sm">
-                                        <p class="font-medium text-gray-700">Ditugaskan kepada ${totalSiswa} siswa</p>
-                                        <div class="flex space-x-4">
-                                            <span class="text-gray-600">Terkumpul: <b class="font-bold text-gray-800">${terkumpulCount}/${totalSiswa}</b></span>
-                                            <span class="text-gray-600">Dinilai: <b class="font-bold text-gray-800">${dinilaiCount}/${totalSiswa}</b></span>
-                                        </div>
-                                    </div>
-                                </div>`;
-                        }).join('')}</div>`;
-                    } else {
-                        contentHTML = renderEmptyState();
-                    }
+                    contentHTML = `<div class="space-y-4">${tugasDiberikan.length > 0 ? tugasDiberikan.map(group => {
+                        const totalSiswa = group.siswa.length;
+                        const terkumpulCount = group.siswa.filter(s => s.status !== 'Belum Dikerjakan').length;
+                        const dinilaiCount = group.siswa.filter(s => s.status === 'Dinilai').length;
+                        return `<div class="bg-white p-5 rounded-2xl soft-shadow">
+                            <h3 class="text-lg font-semibold">${group.judul}</h3>
+                            <p class="text-sm text-gray-500 mt-1">Mapel: ${group.mapel} | Batas Waktu: ${formatTanggal(group.deadline)}</p>
+                            <div class="mt-4 pt-4 border-t flex items-center justify-between text-sm">
+                                <p>Ditugaskan kepada ${totalSiswa} siswa</p>
+                                <div class="flex space-x-4"><span>Terkumpul: <b>${terkumpulCount}/${totalSiswa}</b></span><span>Dinilai: <b>${dinilaiCount}/${totalSiswa}</b></span></div>
+                            </div>
+                        </div>`;
+                    }).join('') : renderEmptyState()}</div>`;
                 }
                 
                 const headerHTML = `<div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-                    <h2 class="text-2xl font-bold text-gray-800">${activeTab === 'terkumpul' ? 'Tugas Terkumpul' : 'Tugas yang Diberikan'}</h2>
-                    <div class="flex items-center gap-4 w-full md:w-auto">
-                        ${headerControlsHTML}
-                        <button id="btn-tambah-tugas" class="btn-primary flex-shrink-0 flex items-center space-x-2 text-white text-sm font-medium px-4 py-2 rounded-xl">+ Buat Tugas Baru</button>
-                    </div>
+                    <h2 class="text-2xl font-bold">${activeTab === 'terkumpul' ? 'Tugas Terkumpul' : 'Tugas yang Diberikan'}</h2>
+                    <div class="flex items-center gap-4 w-full md:w-auto">${headerControlsHTML}<button id="btn-tambah-tugas" class="btn-primary flex-shrink-0 flex items-center space-x-2 text-white text-sm font-medium px-4 py-2 rounded-xl">+ Buat Tugas Baru</button></div>
                 </div>`;
                 
                 guruContent.innerHTML = headerHTML + contentHTML;
             };
             
-            const renderAdminView = (tugasList, usersList) => {
+            const renderAdminView = async () => {
                 const adminContent = document.getElementById('admin-content');
                 if (!adminContent) return;
+                adminContent.innerHTML = renderSkeleton(2);
+                
+                const { data: usersList, error: usersError } = await supabaseClient.from('profiles').select('*');
+                if (usersError) { showToast('Gagal memuat data pengguna.', 'danger'); return; }
 
                 const activeTab = document.querySelector('.admin-tab.tab-active')?.dataset.view || 'users';
 
@@ -508,118 +430,84 @@
                     const renderUserList = (role) => {
                         const usersOfRole = usersList.filter(u => u.role === role);
                         if (usersOfRole.length === 0) return `<p class="text-sm text-gray-500 p-4 text-center bg-white rounded-2xl soft-shadow">Belum ada pengguna.</p>`;
-                        
-                        return `<div class="bg-white rounded-2xl soft-shadow overflow-hidden">
-                                    <table class="w-full text-sm text-left">
-                                        <thead class="bg-gray-50">
-                                            <tr>
-                                                <th class="px-6 py-3 font-semibold text-gray-600">Nama</th>
-                                                <th class="px-6 py-3 font-semibold text-gray-600">Username</th>
-                                                <th class="px-6 py-3 font-semibold text-gray-600 text-right">Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-gray-200">
-                                            ${usersOfRole.map(user => `
-                                                <tr>
-                                                    <td class="px-6 py-4 font-medium text-gray-900">${user.nama}</td>
-                                                    <td class="px-6 py-4 text-gray-500">${user.username}</td>
-                                                    <td class="px-6 py-4 text-right">
-                                                        <button data-id="${user.id}" class="btn-edit-pengguna text-indigo-600 hover:text-indigo-800 font-semibold mr-4">Edit</button>
-                                                        <button data-id="${user.id}" class="btn-ubah-password text-indigo-600 hover:text-indigo-800 font-semibold mr-4">Ubah Password</button>
-                                                        <button data-id="${user.id}" class="btn-hapus-pengguna text-red-600 hover:text-red-800 font-semibold">Hapus</button>
-                                                    </td>
-                                                </tr>
-                                            `).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>`;
+                        return `<div class="bg-white rounded-2xl soft-shadow overflow-hidden"><table class="w-full text-sm text-left">
+                            <thead class="bg-gray-50"><tr><th class="px-6 py-3 font-semibold">Nama</th><th class="px-6 py-3 font-semibold">Username</th><th class="px-6 py-3 font-semibold text-right">Aksi</th></tr></thead>
+                            <tbody class="divide-y">${usersOfRole.map(user => `
+                                <tr>
+                                    <td class="px-6 py-4 font-medium">${user.nama}</td><td class="px-6 py-4 text-gray-500">${user.username}</td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button data-id='${JSON.stringify(user)}' class="btn-edit-pengguna text-indigo-600 font-semibold mr-4">Edit</button>
+                                        <button data-id='${JSON.stringify(user)}' class="btn-ubah-password text-indigo-600 font-semibold mr-4">Ubah Password</button>
+                                        <button data-id='${JSON.stringify(user)}' class="btn-hapus-pengguna text-red-600 font-semibold">Hapus</button>
+                                    </td>
+                                </tr>`).join('')}</tbody>
+                        </table></div>`;
                     };
-
                     adminContent.innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div><div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-bold text-gray-800">Daftar Guru</h3><button id="btn-tambah-guru" class="btn-primary flex items-center space-x-2 text-white text-sm font-medium px-4 py-2 rounded-xl">+ Tambah Guru</button></div>${renderUserList('guru')}</div>
-                        <div><div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-bold text-gray-800">Daftar Siswa</h3><button id="btn-tambah-siswa" class="btn-primary flex items-center space-x-2 text-white text-sm font-medium px-4 py-2 rounded-xl">+ Tambah Siswa</button></div>${renderUserList('siswa')}</div>
+                        <div><div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-bold">Daftar Guru</h3><button id="btn-tambah-guru" class="btn-primary flex items-center space-x-2 text-white text-sm font-medium px-4 py-2 rounded-xl">+ Tambah Guru</button></div>${renderUserList('guru')}</div>
+                        <div><div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-bold">Daftar Siswa</h3><button id="btn-tambah-siswa" class="btn-primary flex items-center space-x-2 text-white text-sm font-medium px-4 py-2 rounded-xl">+ Tambah Siswa</button></div>${renderUserList('siswa')}</div>
                     </div>`;
                 } else {
-                    adminContent.innerHTML = `<h2 class="text-2xl font-bold text-gray-800 mb-4">Aktivitas Pengumpulan Tugas</h2><div class="space-y-4">${tugasList.length > 0 ? tugasList.map(tugas => `<div class="bg-white p-5 rounded-2xl soft-shadow"><div class="flex flex-col md:flex-row justify-between items-start"><div class="flex-grow"><h3 class="text-lg font-semibold text-gray-800">${tugas.judul}</h3><p class="text-sm text-gray-500 mt-1">Siswa: <b>${tugas.namaSiswa}</b> | Mapel: ${tugas.mapel}</p></div><div class="mt-4 md:mt-0 flex items-center space-x-4 flex-shrink-0"><span class="bg-${tugas.status === 'Dinilai' ? 'green' : 'orange'}-100 text-${tugas.status === 'Dinilai' ? 'green' : 'orange'}-800 text-xs font-medium px-2.5 py-1 rounded-full">${tugas.status === 'Dinilai' ? 'Sudah Dinilai' : 'Perlu Diperiksa'}</span></div></div></div>`).join('') : renderEmptyState()}</div>`;
+                     const { data: tugasList, error: tugasError } = await supabaseClient.from('tugas').select('*');
+                     if(tugasError) { showToast('Gagal memuat data tugas.', 'danger'); return; }
+                    adminContent.innerHTML = `<h2 class="text-2xl font-bold mb-4">Aktivitas Pengumpulan Tugas</h2><div class="space-y-4">${tugasList.length > 0 ? tugasList.map(tugas => `<div class="bg-white p-5 rounded-2xl soft-shadow"><div class="flex justify-between items-start"><div class="flex-grow"><h3 class="text-lg font-semibold">${tugas.judul}</h3><p class="text-sm text-gray-500 mt-1">Siswa: <b>${tugas.nama_siswa}</b> | Mapel: ${tugas.mapel}</p></div><div class="mt-4 md:mt-0"><span class="bg-${tugas.status === 'Dinilai' ? 'green' : 'orange'}-100 text-${tugas.status === 'Dinilai' ? 'green' : 'orange'}-800 text-xs font-medium px-2.5 py-1 rounded-full">${tugas.status === 'Dinilai' ? 'Sudah Dinilai' : 'Perlu Diperiksa'}</span></div></div></div>`).join('') : renderEmptyState()}</div>`;
                 }
             };
 
-            const showView = (role) => {
-                appContainer.classList.remove('hidden', 'fade-out-down');
-                appContainer.classList.add('fade-in-up');
+            const showView = async (role) => {
+                appContainer.classList.remove('hidden');
                 welcomeMessage.textContent = `Selamat datang, ${currentUser.nama}!`;
 
-                if (role === 'siswa') {
-                    showSiswaDashboard();
-                    currentSiswaTugas = allTugas.filter(t => t.siswaId === currentUser.id);
-                    renderFilteredSiswaTugas();
-                } else if (role === 'guru') {
-                    appContent.innerHTML = `<div id="tabs-container" class="flex border-b border-gray-200 mb-6 space-x-6">
+                if (role === 'siswa') await showSiswaDashboard();
+                else if (role === 'guru') {
+                    appContent.innerHTML = `<div id="tabs-container" class="flex border-b mb-6 space-x-6">
                         <button data-view="diberikan" class="guru-tab py-3 px-1 font-semibold tab-active">Tugas Diberikan</button>
                         <button data-view="terkumpul" class="guru-tab py-3 px-1 font-semibold text-gray-500">Tugas Terkumpul</button>
-                    </div>
-                    <div id="guru-content">${renderSkeleton(4)}</div>`;
-                    renderGuruView();
+                    </div><div id="guru-content"></div>`;
+                    await renderGuruView();
                 } else if (role === 'admin') {
-                    appContent.innerHTML = `<div id="tabs-container" class="flex border-b border-gray-200 mb-6 space-x-6"><button data-view="users" class="admin-tab py-3 px-1 font-semibold tab-active">Manajemen Pengguna</button><button data-view="tugas" class="admin-tab py-3 px-1 font-semibold text-gray-500">Pantau Tugas</button></div> <div id="admin-content">${renderSkeleton(4)}</div>`;
-                    renderAdminView(allTugas, allUsers);
+                    appContent.innerHTML = `<div id="tabs-container" class="flex border-b mb-6 space-x-6"><button data-view="users" class="admin-tab py-3 px-1 font-semibold tab-active">Manajemen Pengguna</button><button data-view="tugas" class="admin-tab py-3 px-1 font-semibold text-gray-500">Pantau Tugas</button></div><div id="admin-content"></div>`;
+                    await renderAdminView();
                 }
                 hideLoader();
             };
 
-            const showSiswaDashboard = () => {
+            const showSiswaDashboard = async () => {
                 currentFilter = 'Semua'; currentSearch = '';
                 appContent.innerHTML = `<div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                        <div class="relative w-full md:max-w-xs"><input id="search-input" type="text" placeholder="Cari tugas..." class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"><svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
-                        <div class="flex items-center gap-4">
-                            <div>
-                                <label for="sort-siswa" class="sr-only">Urutkan</label>
-                                <select id="sort-siswa" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
-                                    <option value="deadline">Batas Waktu Terdekat</option>
-                                    <option value="terbaru">Tugas Terbaru</option>
-                                    <option value="judul">Judul (A-Z)</option>
-                                </select>
-                            </div>
-                            <div id="filter-buttons" class="flex-shrink-0 bg-gray-100 p-1 rounded-xl flex items-center space-x-1">
-                                <button data-filter="Semua" class="filter-btn bg-white text-indigo-600 px-4 py-1.5 rounded-lg text-sm font-semibold">Semua</button>
-                                <button data-filter="Belum Dikerjakan" class="filter-btn text-gray-600 px-4 py-1.5 rounded-lg text-sm font-semibold">Belum Dikerjakan</button>
-                                <button data-filter="Terkirim" class="filter-btn text-gray-600 px-4 py-1.5 rounded-lg text-sm font-semibold">Terkirim</button>
-                                <button data-filter="Dinilai" class="filter-btn text-gray-600 px-4 py-1.5 rounded-lg text-sm font-semibold">Dinilai</button>
-                            </div>
+                    <div class="relative w-full md:max-w-xs"><input id="search-input" type="text" placeholder="Cari tugas..." class="w-full pl-10 pr-4 py-2.5 border rounded-xl"><svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
+                    <div class="flex items-center gap-4">
+                        <select id="sort-siswa" class="bg-white border text-sm rounded-lg block w-full p-2.5"><option value="deadline">Batas Waktu</option><option value="terbaru">Terbaru</option><option value="judul">Judul (A-Z)</option></select>
+                        <div id="filter-buttons" class="flex-shrink-0 bg-gray-100 p-1 rounded-xl flex space-x-1">
+                            <button data-filter="Semua" class="filter-btn bg-white text-indigo-600 px-4 py-1.5 rounded-lg text-sm font-semibold">Semua</button>
+                            <button data-filter="Belum Dikerjakan" class="filter-btn text-gray-600 px-4 py-1.5 rounded-lg text-sm font-semibold">Belum</button>
+                            <button data-filter="Terkirim" class="filter-btn text-gray-600 px-4 py-1.5 rounded-lg text-sm font-semibold">Terkirim</button>
+                            <button data-filter="Dinilai" class="filter-btn text-gray-600 px-4 py-1.5 rounded-lg text-sm font-semibold">Dinilai</button>
                         </div>
-                    </div><div id="task-list-container">${renderSkeleton(3)}</div>`;
+                    </div>
+                </div><div id="task-list-container">${renderSkeleton(4)}</div>`;
                 
-                document.getElementById('search-input').addEventListener('input', debounce((e) => { currentSearch = e.target.value; renderFilteredSiswaTugas(); }, 300));
-                
-                document.getElementById('filter-buttons').addEventListener('click', (e) => {
-                    if (e.target.classList.contains('filter-btn')) {
-                        currentFilter = e.target.dataset.filter;
-                        document.querySelectorAll('.filter-btn').forEach(btn => {
-                            btn.classList.remove('bg-white', 'text-indigo-600');
-                            btn.classList.add('text-gray-600');
-                        });
-                        e.target.classList.add('bg-white', 'text-indigo-600');
-                        renderFilteredSiswaTugas();
-                    }
-                });
+                const { data, error } = await supabaseClient.from('tugas').select('*').eq('siswa_id', currentUser.id);
+                if (error) { showToast('Gagal memuat tugas.', 'danger'); return; }
+                renderSiswaView(data);
             };
 
             // --- EVENT LISTENERS ---
-
-            loginForm.addEventListener('submit', (e) => {
+            loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 showLoader();
                 const username = e.target.username.value;
                 const password = e.target.password.value;
                 
-                const user = allUsers.find(u => u.username === username && u.password === password);
+                const { data, error } = await supabaseClient.from('profiles').select('*').eq('username', username).eq('password', password).single();
 
-                if (user) {
-                    currentUser = user;
+                if (data) {
+                    currentUser = data;
                     loginPanel.classList.add('fade-out-down');
                     setTimeout(() => {
                         loginPanel.classList.add('hidden');
                         showView(currentUser.role);
+                        loginForm.reset();
                     }, 300);
                 } else {
                     hideLoader();
@@ -629,36 +517,23 @@
             });
 
             logoutBtn.addEventListener('click', () => {
-                saveData();
                 currentUser = null;
-                appContent.innerHTML = '';
-                appContainer.classList.add('fade-out-down');
-                setTimeout(() => {
-                    appContainer.classList.add('hidden');
-                    loginPanel.classList.remove('hidden', 'fade-out-down');
-                    loginPanel.classList.add('fade-in-up');
-                    loginForm.reset();
-                }, 300);
+                appContainer.classList.add('hidden');
+                loginPanel.classList.remove('hidden', 'fade-out-down');
+                loginPanel.classList.add('fade-in-up');
             });
 
-            modalBackdrop.addEventListener('click', (e) => {
-                 if (e.target.closest('.btn-cancel') || e.target === modalBackdrop) {
-                    closeModal();
-                }
+            modalBackdrop.addEventListener('click', async (e) => {
+                 if (e.target.closest('.btn-cancel') || e.target === modalBackdrop) closeModal();
                 
-                const confirmDeleteBtn = e.target.closest('.btn-confirm-hapus');
-                if(confirmDeleteBtn) {
-                    const userIdToDelete = parseInt(confirmDeleteBtn.dataset.userId);
-                    const userToDelete = allUsers.find(u => u.id === userIdToDelete);
-                    
-                    allUsers = allUsers.filter(u => u.id !== userIdToDelete);
-                    if (userToDelete && userToDelete.role === 'siswa') {
-                        allTugas = allTugas.filter(t => t.siswaId !== userIdToDelete);
-                    }
-                    
+                 if (e.target.closest('.btn-confirm-hapus')) {
+                    const user = JSON.parse(e.target.closest('.btn-confirm-hapus').dataset.id);
+                    showLoader();
+                    await supabaseClient.from('tugas').delete().eq('siswa_id', user.id);
+                    await supabaseClient.from('profiles').delete().eq('id', user.id);
                     closeModal();
-                    showToast(`Pengguna ${userToDelete.nama} berhasil dihapus.`, 'danger');
-                    refreshUI();
+                    showToast(`Pengguna ${user.nama} berhasil dihapus.`, 'danger');
+                    await refreshUI();
                 }
 
                 const form = e.target.closest('form');
@@ -666,330 +541,266 @@
 
                 form.onsubmit = async (event) => {
                     event.preventDefault();
-                    const formId = form.id;
                     showLoader();
-
-                    if (formId === 'unggah-form') {
+                    
+                    if (form.id === 'unggah-form') {
                         const file = form.querySelector('#file-input').files[0];
-                        const tugasId = parseInt(form.dataset.tugasId);
-                        const tugas = allTugas.find(t => t.id === tugasId);
-                        if (tugas && file) {
-                            tugas.status = 'Terkirim';
-                            tugas.tanggalTerkumpul = new Date();
-                            const fileDataUrl = await readFileAsDataURL(file);
-                            tugas.file = { name: file.name, url: fileDataUrl, type: file.type };
-                            showToast('Tugas berhasil diunggah!');
-                        }
-                    } else if (formId === 'komentar-form') {
-                        const tugasId = parseInt(form.dataset.tugasId);
-                        const tugas = allTugas.find(t => t.id === tugasId);
-                        if (tugas) {
-                            let nilai = parseInt(form.querySelector('#nilai-input').value);
-                            if (isNaN(nilai) || nilai < 0) { nilai = 0; }
-                            if (nilai > 100) { nilai = 100; }
+                        const tugasId = form.dataset.id;
+                        const filePath = `tugas_siswa/${currentUser.id}-${Date.now()}-${file.name}`;
+                        
+                        const { error: uploadError } = await supabaseClient.storage.from('file_tugas').upload(filePath, file);
+                        if (uploadError) { showToast('Gagal mengunggah file.', 'danger'); hideLoader(); return; }
+                        
+                        const { data: { publicUrl } } = supabaseClient.storage.from('file_tugas').getPublicUrl(filePath);
 
-                            tugas.status = 'Dinilai';
-                            tugas.nilai = nilai;
-                            tugas.komentarGuru = form.querySelector('#komentar-input').value || "Selesai diperiksa.";
-                            showToast('Nilai berhasil disimpan!');
-                        }
-                    } else if (formId === 'tambah-pengguna-form') {
+                        const { error: updateError } = await supabaseClient.from('tugas').update({
+                            status: 'Terkirim',
+                            tanggal_terkumpul: new Date().toISOString(),
+                            file_url: publicUrl,
+                            file_filename: file.name
+                        }).eq('id', tugasId);
+                        
+                        if (updateError) showToast('Gagal memperbarui tugas.', 'danger');
+                        else showToast('Tugas berhasil diunggah!');
+                    } 
+                    else if (form.id === 'komentar-form') {
+                        let nilai = parseInt(form.querySelector('#nilai-input').value);
+                        if (isNaN(nilai) || nilai < 0) nilai = 0;
+                        if (nilai > 100) nilai = 100;
+
+                        const { error } = await supabaseClient.from('tugas').update({
+                            status: 'Dinilai',
+                            nilai: nilai,
+                            komentar_guru: form.querySelector('#komentar-input').value || "Selesai diperiksa."
+                        }).eq('id', form.dataset.id);
+
+                        if(error) showToast('Gagal menyimpan nilai.', 'danger');
+                        else showToast('Nilai berhasil disimpan!');
+                    } 
+                    else if (form.id === 'tambah-pengguna-form') {
                         const username = form.querySelector('#username-input-add').value;
-                        if (allUsers.some(u => u.username === username)) {
+                        const { data } = await supabaseClient.from('profiles').select('id').eq('username', username).single();
+                        if (data) {
                             form.querySelector('#username-error').textContent = 'Username sudah ada.';
-                            hideLoader();
-                            return;
+                            hideLoader(); return;
                         }
-                        const newUser = {
+                        const { error } = await supabaseClient.from('profiles').insert({
                             id: Date.now(),
                             role: form.querySelector('#user-role-input').value,
                             nama: form.querySelector('#nama-lengkap-input').value,
                             username: username,
                             password: form.querySelector('#password-input-add').value
-                        };
-                        allUsers.push(newUser);
-                        showToast('Pengguna baru berhasil ditambahkan!');
-                    } else if (formId === 'edit-pengguna-form') {
-                        const userId = parseInt(form.dataset.userId);
-                        const user = allUsers.find(u => u.id === userId);
+                        });
+                        if(error) showToast('Gagal menambah pengguna.', 'danger');
+                        else showToast('Pengguna baru berhasil ditambahkan!');
+                    } 
+                    else if (form.id === 'edit-pengguna-form') {
+                        const user = JSON.parse(form.dataset.id);
                         const newUsername = form.querySelector('#username-edit').value;
-                        
-                        if (allUsers.some(u => u.username === newUsername && u.id !== userId)) {
-                           form.querySelector('#username-edit-error').textContent = 'Username sudah digunakan.';
-                           hideLoader();
-                           return;
-                        }
 
-                        if(user) {
-                           user.nama = form.querySelector('#nama-lengkap-edit').value;
-                           user.username = newUsername;
-                           showToast('Data pengguna berhasil diperbarui!');
-                        }
-                    } else if (formId === 'ubah-password-form') {
-                        const userId = parseInt(form.dataset.userId);
-                        const user = allUsers.find(u => u.id === userId);
-                        if(user) {
-                            user.password = form.querySelector('#new-password-input').value;
-                            showToast('Password berhasil diubah!');
-                        }
-                    } else if(formId === 'tambah-tugas-form'){
-                        const siswaIdOrAll = form.querySelector('#siswa-tugas-input').value;
-                        const lampiranFile = form.querySelector('#lampiran-tugas-input').files[0];
-                        const judul = form.querySelector('#judul-tugas-input').value;
-                        const mapel = form.querySelector('#mapel-tugas-input').value;
-                        const deadlineValue = form.querySelector('#deadline-tugas-input').value;
-                        
-                        const deadline = new Date(deadlineValue + 'T00:00:00');
-
-                        let lampiranGuru = null;
-                        if(lampiranFile){
-                            const fileDataUrl = await readFileAsDataURL(lampiranFile);
-                            lampiranGuru = {
-                                name: lampiranFile.name,
-                                url: fileDataUrl,
-                                type: lampiranFile.type
-                            };
-                        }
-
-                        if (siswaIdOrAll === "semua") {
-                            const semuaSiswa = allUsers.filter(u => u.role === 'siswa');
-                            semuaSiswa.forEach((siswa, index) => {
-                                const newTugas = {
-                                    id: Date.now() + index,
-                                    judul: judul,
-                                    mapel: mapel,
-                                    deadline: deadline,
-                                    siswaId: siswa.id,
-                                    namaSiswa: siswa.nama,
-                                    status: "Belum Dikerjakan",
-                                    file: null, nilai: null, komentarGuru: null,
-                                    lampiranGuru: lampiranGuru
-                                };
-                                allTugas.push(newTugas);
-                            });
-                        } else {
-                            const siswaId = parseInt(siswaIdOrAll);
-                            const selectedSiswa = allUsers.find(u => u.id === siswaId);
-                            if (selectedSiswa) {
-                                const newTugas = {
-                                    id: Date.now(),
-                                    judul: judul,
-                                    mapel: mapel,
-                                    deadline: deadline,
-                                    siswaId,
-                                    namaSiswa: selectedSiswa.nama,
-                                    status: "Belum Dikerjakan",
-                                    file: null, nilai: null, komentarGuru: null,
-                                    lampiranGuru: lampiranGuru
-                                };
-                                allTugas.push(newTugas);
+                        if (newUsername !== user.username) {
+                            const { data } = await supabaseClient.from('profiles').select('id').eq('username', newUsername).single();
+                            if (data) {
+                                form.querySelector('#username-edit-error').textContent = 'Username sudah digunakan.';
+                                hideLoader(); return;
                             }
                         }
-                        showToast('Tugas baru berhasil dibuat!');
+                        
+                        const { error } = await supabaseClient.from('profiles').update({
+                           nama: form.querySelector('#nama-lengkap-edit').value,
+                           username: newUsername,
+                        }).eq('id', user.id);
+                        if(error) showToast('Gagal memperbarui pengguna.', 'danger');
+                        else showToast('Data pengguna berhasil diperbarui!');
+                    } 
+                    else if (form.id === 'ubah-password-form') {
+                        const user = JSON.parse(form.dataset.id);
+                        const { error } = await supabaseClient.from('profiles').update({
+                            password: form.querySelector('#new-password-input').value
+                        }).eq('id', user.id);
+                        if(error) showToast('Gagal mengubah password.', 'danger');
+                        else showToast('Password berhasil diubah!');
+                    } 
+                    else if(form.id === 'tambah-tugas-form'){
+                        const lampiranFile = form.querySelector('#lampiran-tugas-input').files[0];
+                        let lampiranData = {};
+
+                        if(lampiranFile) {
+                            const filePath = `lampiran_guru/${currentUser.id}-${Date.now()}-${lampiranFile.name}`;
+                            const { error: uploadError } = await supabaseClient.storage.from('file_tugas').upload(filePath, lampiranFile);
+                            if (uploadError) { showToast('Gagal unggah lampiran.', 'danger'); hideLoader(); return; }
+                            const { data: { publicUrl } } = supabaseClient.storage.from('file_tugas').getPublicUrl(filePath);
+                            lampiranData = { lampiran_guru_url: publicUrl, lampiran_guru_filename: lampiranFile.name };
+                        }
+                        
+                        const tugasData = {
+                            judul: form.querySelector('#judul-tugas-input').value,
+                            mapel: form.querySelector('#mapel-tugas-input').value,
+                            deadline: new Date(form.querySelector('#deadline-tugas-input').value + 'T00:00:00'),
+                            status: "Belum Dikerjakan",
+                            ...lampiranData
+                        };
+                        
+                        const siswaIdOrAll = form.querySelector('#siswa-tugas-input').value;
+                        let tugasToInsert = [];
+
+                        if (siswaIdOrAll === "semua") {
+                            const { data: semuaSiswa } = await supabaseClient.from('profiles').select('id, nama').eq('role', 'siswa');
+                            tugasToInsert = semuaSiswa.map(siswa => ({ ...tugasData, id: Date.now() + siswa.id, siswa_id: siswa.id, nama_siswa: siswa.nama }));
+                        } else {
+                            const { data: siswa } = await supabaseClient.from('profiles').select('id, nama').eq('id', siswaIdOrAll).single();
+                            tugasToInsert.push({ ...tugasData, id: Date.now(), siswa_id: siswa.id, nama_siswa: siswa.nama });
+                        }
+                        
+                        const { error } = await supabaseClient.from('tugas').insert(tugasToInsert);
+                        if(error) showToast('Gagal membuat tugas baru.', 'danger');
+                        else showToast('Tugas baru berhasil dibuat!');
                     }
                     closeModal();
-                    refreshUI();
+                    await refreshUI();
                 }
             });
             
-            appContent.addEventListener('click', (e) => {
+            appContent.addEventListener('click', async (e) => {
                 const targetButton = e.target.closest('button');
                 if (!targetButton) return;
                 
                 if (targetButton.classList.contains('guru-filter-btn')) {
                     currentGuruFilter = targetButton.dataset.filter;
-                    renderGuruView();
+                    await renderGuruView();
                 }
 
                 if (targetButton.classList.contains('guru-tab')) {
-                    document.querySelectorAll('.guru-tab').forEach(tab => {
-                        tab.classList.remove('tab-active');
-                        tab.classList.add('text-gray-500');
-                    });
+                    document.querySelectorAll('.guru-tab').forEach(tab => tab.classList.remove('tab-active','text-gray-500'));
                     targetButton.classList.add('tab-active');
-                    targetButton.classList.remove('text-gray-500');
-                    renderGuruView();
+                    document.querySelectorAll('.guru-tab:not(.tab-active)').forEach(t => t.classList.add('text-gray-500'));
+                    await renderGuruView();
                 }
                 
                 if (targetButton.classList.contains('admin-tab')) {
                     document.querySelectorAll('.admin-tab').forEach(tab => tab.classList.remove('tab-active'));
                     targetButton.classList.add('tab-active');
-                    renderAdminView(allTugas, allUsers);
+                    await renderAdminView();
                 }
 
                 if (targetButton.classList.contains('btn-edit-pengguna')) {
-                    const userId = parseInt(targetButton.dataset.id);
-                    const user = allUsers.find(u => u.id === userId);
-                    if (user) {
-                        openModal(`<div id="edit-pengguna-modal" class="bg-white rounded-2xl p-4 w-full max-w-sm">
-                            <h3 class="text-lg font-bold mb-4">Edit Pengguna</h3>
-                            <form id="edit-pengguna-form" data-user-id="${user.id}">
-                                <div class="space-y-3">
-                                    <div>
-                                        <label for="nama-lengkap-edit" class="block text-sm font-medium">Nama Lengkap</label>
-                                        <input type="text" id="nama-lengkap-edit" class="w-full border-gray-300 rounded-lg p-2.5 text-sm" value="${user.nama}" required>
-                                    </div>
-                                    <div>
-                                        <label for="username-edit" class="block text-sm font-medium">Username</label>
-                                        <input type="text" id="username-edit" class="w-full border-gray-300 rounded-lg p-2.5 text-sm" value="${user.username}" required>
-                                        <p id="username-edit-error" class="text-red-500 text-xs mt-1 h-3"></p>
-                                    </div>
-                                </div>
-                                <div class="flex justify-end space-x-3 mt-4">
-                                    <button type="button" class="btn-cancel px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg text-sm">Batal</button>
-                                    <button type="submit" class="btn-primary px-4 py-2 text-white font-medium rounded-lg text-sm">Simpan</button>
-                                </div>
-                            </form>
-                        </div>`);
-                    }
+                    const user = JSON.parse(targetButton.dataset.id);
+                    openModal(`<div class="bg-white rounded-2xl p-4 w-full max-w-sm">
+                        <h3 class="text-lg font-bold mb-4">Edit Pengguna</h3>
+                        <form id="edit-pengguna-form" data-id='${JSON.stringify(user)}'>
+                            <div class="space-y-3">
+                                <div><label class="block text-sm font-medium">Nama Lengkap</label><input type="text" id="nama-lengkap-edit" class="w-full border-gray-300 rounded-lg p-2.5 text-sm" value="${user.nama}" required></div>
+                                <div><label class="block text-sm font-medium">Username</label><input type="text" id="username-edit" class="w-full border-gray-300 rounded-lg p-2.5 text-sm" value="${user.username}" required><p id="username-edit-error" class="text-red-500 text-xs mt-1 h-3"></p></div>
+                            </div>
+                            <div class="flex justify-end space-x-3 mt-4"><button type="button" class="btn-cancel px-4 py-2 bg-gray-200 rounded-lg text-sm">Batal</button><button type="submit" class="btn-primary px-4 py-2 text-white rounded-lg text-sm">Simpan</button></div>
+                        </form>
+                    </div>`);
                 }
 
                 if (targetButton.classList.contains('btn-hapus-pengguna')) {
-                    const userId = parseInt(targetButton.dataset.id);
-                    const user = allUsers.find(u => u.id === userId);
-                    if (user) {
-                        openModal(`<div class="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
-                            <svg class="mx-auto h-16 w-16 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z"></path></svg>
-                            <h3 class="text-xl font-bold mt-4">Hapus Pengguna?</h3>
-                            <p class="text-gray-500 text-sm mt-2">Anda yakin ingin menghapus <b>${user.nama}</b>? Tindakan ini tidak dapat diurungkan.</p>
-                            <div class="flex justify-center space-x-4 mt-6">
-                                <button type="button" class="btn-cancel px-6 py-2.5 bg-gray-200 rounded-xl">Batal</button>
-                                <button type="button" data-user-id="${user.id}" class="btn-confirm-hapus btn-danger px-6 py-2.5 rounded-xl">Ya, Hapus</button>
-                            </div>
-                        </div>`);
-                    }
+                    const user = JSON.parse(targetButton.dataset.id);
+                    openModal(`<div class="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
+                        <svg class="mx-auto h-16 w-16 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z"></path></svg>
+                        <h3 class="text-xl font-bold mt-4">Hapus Pengguna?</h3>
+                        <p class="text-gray-500 text-sm mt-2">Anda yakin ingin menghapus <b>${user.nama}</b>? Tindakan ini tidak dapat diurungkan.</p>
+                        <div class="flex justify-center space-x-4 mt-6">
+                            <button type="button" class="btn-cancel px-6 py-2.5 bg-gray-200 rounded-xl">Batal</button>
+                            <button type="button" data-id='${JSON.stringify(user)}' class="btn-confirm-hapus btn-danger px-6 py-2.5 rounded-xl">Ya, Hapus</button>
+                        </div>
+                    </div>`);
                 }
 
                 if (targetButton.classList.contains('btn-unggah')) {
-                    const tugasId = targetButton.dataset.id;
-                    openModal(`<div id="unggah-modal" class="bg-white rounded-2xl soft-shadow p-6 w-full max-w-sm"><h3 class="text-xl font-bold mb-2">Unggah Tugas</h3><p class="text-sm text-gray-500 mb-6">Pilih file tugas untuk dikirimkan. Pastikan file sudah benar sebelum mengirim.</p><form id="unggah-form" data-tugas-id="${tugasId}"><label class="block w-full cursor-pointer bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-100 transition"><svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span id="file-name-display" class="mt-2 block text-sm text-gray-600">Pilih file atau seret ke sini</span><input type="file" id="file-input" class="sr-only" required></label><p id="file-error" class="text-red-500 text-sm mt-2 h-4"></p><div class="flex justify-end space-x-3 mt-6"><button type="button" class="btn-cancel px-5 py-2.5 bg-gray-200 text-gray-700 rounded-xl">Batal</button><button type="submit" class="btn-primary px-5 py-2.5 text-white rounded-xl">Kirim</button></div></form></div>`);
-                    
+                    openModal(`<div class="bg-white rounded-2xl p-6 w-full max-w-sm"><h3 class="text-xl font-bold mb-2">Unggah Tugas</h3><p class="text-sm text-gray-500 mb-6">Pilih file tugas untuk dikirimkan.</p><form id="unggah-form" data-id="${targetButton.dataset.id}"><label class="block w-full cursor-pointer bg-gray-50 border-2 border-dashed rounded-xl p-8 text-center"><svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span id="file-name-display" class="mt-2 block text-sm">Pilih file</span><input type="file" id="file-input" class="sr-only" required></label><p id="file-error" class="text-red-500 text-sm mt-2 h-4"></p><div class="flex justify-end space-x-3 mt-6"><button type="button" class="btn-cancel px-5 py-2.5 bg-gray-200 rounded-xl">Batal</button><button type="submit" class="btn-primary px-5 py-2.5 text-white rounded-xl">Kirim</button></div></form></div>`);
                     const fileInput = document.getElementById('file-input');
-                    const fileNameDisplay = document.getElementById('file-name-display');
                     const fileError = document.getElementById('file-error');
-
                     fileInput.onchange = (ev) => {
                         const file = ev.target.files[0];
                         if (!file) return;
-
-                        const allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'txt', 'zip', 'rar', 'ppt', 'pptx', 'xls', 'xlsx'];
-                        const fileExtension = file.name.split('.').pop().toLowerCase();
-
-                        if (!allowedExtensions.includes(fileExtension)) {
-                            fileError.textContent = `File .${fileExtension} tidak diizinkan. Coba tipe lain.`;
-                            fileNameDisplay.textContent = 'Pilih file atau seret ke sini';
+                        const allowed = ['pdf','doc','docx','jpg','jpeg','png','gif','txt','zip','rar','ppt','pptx','xls','xlsx'];
+                        const ext = file.name.split('.').pop().toLowerCase();
+                        if (!allowed.includes(ext)) {
+                            fileError.textContent = `File .${ext} tidak diizinkan.`;
                             fileInput.value = ''; 
                         } else {
                             fileError.textContent = '';
-                            fileNameDisplay.textContent = file.name;
+                            document.getElementById('file-name-display').textContent = file.name;
                         }
                     };
                 }
                  if (targetButton.classList.contains('btn-komentar')) {
-                    const tugasId = targetButton.dataset.id;
-                    const data = targetButton.dataset;
-                    const filePreviewHTML = generateFilePreviewHTML(data);
-                    openModal(`<div id="komentar-modal" class="bg-white rounded-2xl soft-shadow p-4 w-full max-w-sm">
-                        <h3 class="text-lg font-bold mb-1">Periksa Tugas</h3>
-                        <p class="text-sm text-gray-500 mb-3">Tugas dari ${data.nama}</p>
-                        <form id="komentar-form" data-tugas-id="${tugasId}">
+                    const tugas = JSON.parse(targetButton.dataset.id);
+                    openModal(`<div class="bg-white rounded-2xl p-4 w-full max-w-sm"><h3 class="text-lg font-bold mb-1">Periksa Tugas</h3><p class="text-sm text-gray-500 mb-3">Tugas dari ${tugas.nama_siswa}</p>
+                        <form id="komentar-form" data-id="${tugas.id}">
                             <div class="overflow-y-auto max-h-[50vh] pr-2">
-                                ${filePreviewHTML}
+                                ${generateFilePreviewHTML({fileName: tugas.file_filename, fileUrl: tugas.file_url, fileType: 'image/'})}
                                 <div class="space-y-2">
-                                    <div class="mt-0">
-                                        <label for="nilai-input" class="block text-sm font-medium">Nilai</label>
-                                        <input type="number" id="nilai-input" max="100" min="0" class="w-full border-gray-300 rounded-lg p-2 text-sm" value="${data.nilai || ''}" required>
-                                    </div>
-                                    <div>
-                                        <label for="komentar-input" class="block text-sm font-medium">Komentar</label>
-                                        <textarea id="komentar-input" rows="2" class="w-full border-gray-300 rounded-lg p-2 text-sm">${data.komentar || ''}</textarea>
-                                    </div>
+                                    <div><label class="block text-sm font-medium">Nilai</label><input type="number" id="nilai-input" max="100" min="0" class="w-full border-gray-300 rounded-lg p-2 text-sm" value="${tugas.nilai || ''}" required></div>
+                                    <div><label class="block text-sm font-medium">Komentar</label><textarea id="komentar-input" rows="2" class="w-full border-gray-300 rounded-lg p-2 text-sm">${tugas.komentar_guru || ''}</textarea></div>
                                 </div>
                             </div>
-                            <div class="flex justify-end space-x-2 mt-3 pt-3 border-t">
-                                <button type="button" class="btn-cancel px-3 py-1.5 bg-gray-200 rounded-lg text-sm">Batal</button>
-                                <button type="submit" class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm">Simpan</button>
-                            </div>
+                            <div class="flex justify-end space-x-2 mt-3 pt-3 border-t"><button type="button" class="btn-cancel px-3 py-1.5 bg-gray-200 rounded-lg text-sm">Batal</button><button type="submit" class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm">Simpan</button></div>
                         </form>
                     </div>`);
                 }
                 if (targetButton.classList.contains('btn-lihat-tugas')) {
-                    const tugasId = parseInt(targetButton.dataset.id);
-                    const tugas = allTugas.find(t => t.id === tugasId);
-                    if (tugas && tugas.file) {
-                        const data = {
-                            fileName: tugas.file.name,
-                            fileType: tugas.file.type,
-                            fileUrl: tugas.file.url
-                        };
-                        const filePreviewHTML = generateFilePreviewHTML(data);
-                        openModal(`<div class="bg-white rounded-2xl p-4 w-full max-w-sm">
-                            <h3 class="text-lg font-bold mb-2">Tugas Terkirim</h3>
-                            <p class="text-gray-500 text-sm mb-4">Ini adalah file yang telah Anda unggah.</p>
-                            ${filePreviewHTML}
-                            <div class="flex justify-end mt-4">
-                                <button type="button" class="btn-cancel px-4 py-2 bg-gray-200 rounded-lg text-sm">Tutup</button>
-                            </div>
-                        </div>`);
+                    const { data, error } = await supabaseClient.from('tugas').select('*').eq('id', targetButton.dataset.id).single();
+                    if(data){
+                        openModal(`<div class="bg-white rounded-2xl p-4 w-full max-w-sm"><h3 class="text-lg font-bold mb-2">Tugas Terkirim</h3><p class="text-gray-500 text-sm mb-4">Ini file yang Anda unggah.</p>${generateFilePreviewHTML({fileName: data.file_filename, fileUrl: data.file_url, fileType: 'image/'})}<div class="flex justify-end mt-4"><button type="button" class="btn-cancel px-4 py-2 bg-gray-200 rounded-lg text-sm">Tutup</button></div></div>`);
                     }
                 }
                 if (targetButton.classList.contains('btn-ubah-password')) {
-                    const userId = targetButton.dataset.id;
-                    const user = allUsers.find(u => u.id == userId);
-                    if (user) {
-                        openModal(`<div id="ubah-password-modal" class="bg-white rounded-2xl p-4 w-full max-w-sm">
-                            <h3 class="text-lg font-bold mb-2">Ubah Password</h3>
-                            <p class="text-gray-600 text-sm mb-4">Untuk pengguna: <span class="font-semibold">${user.nama}</span></p>
-                            <form id="ubah-password-form" data-user-id="${user.id}">
-                                <div>
-                                    <label for="new-password-input" class="block text-sm font-medium text-gray-700">Password Baru</label>
-                                    <input type="password" id="new-password-input" class="mt-1 w-full border-gray-300 rounded-lg p-2.5 text-sm" required>
-                                </div>
-                                <div class="flex justify-end space-x-3 mt-4">
-                                    <button type="button" class="btn-cancel px-4 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg text-sm">Batal</button>
-                                    <button type="submit" class="btn-primary px-4 py-2 text-white font-medium rounded-lg text-sm">Simpan</button>
-                                </div>
-                            </form>
-                        </div>`);
-                    }
+                    const user = JSON.parse(targetButton.dataset.id);
+                    openModal(`<div class="bg-white rounded-2xl p-4 w-full max-w-sm"><h3 class="text-lg font-bold mb-2">Ubah Password</h3><p class="text-gray-600 text-sm mb-4">Untuk: <span class="font-semibold">${user.nama}</span></p>
+                        <form id="ubah-password-form" data-id='${JSON.stringify(user)}'>
+                            <div><label class="block text-sm font-medium">Password Baru</label><input type="password" id="new-password-input" class="mt-1 w-full border-gray-300 rounded-lg p-2.5 text-sm" required></div>
+                            <div class="flex justify-end space-x-3 mt-4"><button type="button" class="btn-cancel px-4 py-2 bg-gray-200 rounded-lg text-sm">Batal</button><button type="submit" class="btn-primary px-4 py-2 text-white rounded-lg text-sm">Simpan</button></div>
+                        </form>
+                    </div>`);
                 }
                 if (targetButton.id === 'btn-tambah-guru' || targetButton.id === 'btn-tambah-siswa') {
                     const role = targetButton.id === 'btn-tambah-guru' ? 'guru' : 'siswa';
-                    openModal(`<div id="tambah-pengguna-modal" class="bg-white rounded-2xl p-4 w-full max-w-sm"><h3 class="text-lg font-bold mb-4">Tambah ${role === 'guru' ? 'Guru' : 'Siswa'} Baru</h3><form id="tambah-pengguna-form"><input type="hidden" id="user-role-input" value="${role}"><div class="space-y-3"><div><label for="nama-lengkap-input" class="block text-sm font-medium">Nama Lengkap</label><input type="text" id="nama-lengkap-input" class="w-full border-gray-300 rounded-lg p-2.5 text-sm" required></div><div><label for="username-input-add" class="block text-sm font-medium">Username</label><input type="text" id="username-input-add" class="w-full border-gray-300 rounded-lg p-2.5 text-sm" required><p id="username-error" class="text-red-500 text-xs mt-1 h-3"></p></div><div><label for="password-input-add" class="block text-sm font-medium">Password Awal</label><input type="password" id="password-input-add" class="w-full border-gray-300 rounded-lg p-2.5 text-sm" required></div></div><div class="flex justify-end space-x-3 mt-4"><button type="button" class="btn-cancel px-4 py-2 bg-gray-200 rounded-lg text-sm">Batal</button><button type="submit" class="btn-primary px-4 py-2 text-white rounded-lg text-sm">Simpan</button></div></form></div>`);
+                    openModal(`<div class="bg-white rounded-2xl p-4 w-full max-w-sm"><h3 class="text-lg font-bold mb-4">Tambah ${role === 'guru' ? 'Guru' : 'Siswa'}</h3><form id="tambah-pengguna-form"><input type="hidden" id="user-role-input" value="${role}"><div class="space-y-3"><div><label class="block text-sm font-medium">Nama Lengkap</label><input type="text" id="nama-lengkap-input" class="w-full border-gray-300 rounded-lg p-2.5 text-sm" required></div><div><label class="block text-sm font-medium">Username</label><input type="text" id="username-input-add" class="w-full border-gray-300 rounded-lg p-2.5 text-sm" required><p id="username-error" class="text-red-500 text-xs mt-1 h-3"></p></div><div><label class="block text-sm font-medium">Password Awal</label><input type="password" id="password-input-add" class="w-full border-gray-300 rounded-lg p-2.5 text-sm" required></div></div><div class="flex justify-end space-x-3 mt-4"><button type="button" class="btn-cancel px-4 py-2 bg-gray-200 rounded-lg text-sm">Batal</button><button type="submit" class="btn-primary px-4 py-2 text-white rounded-lg text-sm">Simpan</button></div></form></div>`);
                 }
                 if(targetButton.id === 'btn-tambah-tugas'){
-                    const siswaOptions = allUsers.filter(u => u.role === 'siswa').map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
-                    openModal(`<div id="tambah-tugas-modal" class="bg-white rounded-2xl p-4 w-full max-w-sm"><h3 class="text-lg font-bold mb-3">Buat Tugas Baru</h3><form id="tambah-tugas-form"><div class="space-y-1.5"><div><label for="judul-tugas-input" class="block text-sm font-medium mb-1">Judul Tugas</label><input type="text" id="judul-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm" required></div><div><label for="mapel-tugas-input" class="block text-sm font-medium mb-1">Mata Pelajaran</label><input type="text" id="mapel-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm" required></div><div><label for="deadline-tugas-input" class="block text-sm font-medium mb-1">Batas Waktu</label><input type="date" id="deadline-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm" required></div><div><label for="siswa-tugas-input" class="block text-sm font-medium mb-1">Tugaskan Untuk Siswa</label><select id="siswa-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm"><option value="semua">Semua Siswa</option>${siswaOptions}</select></div><div><label for="lampiran-tugas-input" class="block text-sm font-medium mb-1">Lampiran (Opsional)</label><input type="file" id="lampiran-tugas-input" class="w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"></div></div><div class="flex justify-end space-x-2 mt-3"><button type="button" class="btn-cancel px-3 py-1.5 text-sm bg-gray-200 rounded-lg">Batal</button><button type="submit" class="btn-primary px-3 py-1.5 text-sm text-white rounded-lg">Simpan</button></div></form></div>`);
+                    const { data: siswaList } = await supabaseClient.from('profiles').select('id, nama').eq('role', 'siswa');
+                    const siswaOptions = siswaList.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
+                    openModal(`<div class="bg-white rounded-2xl p-4 w-full max-w-sm"><h3 class="text-lg font-bold mb-3">Buat Tugas Baru</h3><form id="tambah-tugas-form"><div class="space-y-1.5"><div><label class="block text-sm font-medium">Judul Tugas</label><input type="text" id="judul-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm" required></div><div><label class="block text-sm font-medium">Mata Pelajaran</label><input type="text" id="mapel-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm" required></div><div><label class="block text-sm font-medium">Batas Waktu</label><input type="date" id="deadline-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm" required></div><div><label class="block text-sm font-medium">Tugaskan Untuk</label><select id="siswa-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm"><option value="semua">Semua Siswa</option>${siswaOptions}</select></div><div><label class="block text-sm font-medium">Lampiran</label><input type="file" id="lampiran-tugas-input" class="w-full text-sm file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 hover:file:bg-indigo-100"></div></div><div class="flex justify-end space-x-2 mt-3"><button type="button" class="btn-cancel px-3 py-1.5 text-sm bg-gray-200 rounded-lg">Batal</button><button type="submit" class="btn-primary px-3 py-1.5 text-sm text-white rounded-lg">Simpan</button></div></form></div>`);
                 }
             });
 
-            appContent.addEventListener('change', (e) => {
+            appContent.addEventListener('change', async (e) => {
                 if (e.target.id === 'sort-siswa') {
                     currentSortSiswa = e.target.value;
-                    renderFilteredSiswaTugas();
+                    const { data } = await supabaseClient.from('tugas').select('*').eq('siswa_id', currentUser.id);
+                    renderSiswaView(data);
                 }
                 if (e.target.id === 'sort-guru') {
                     currentSortGuru = e.target.value;
-                    renderGuruView();
+                    await renderGuruView();
                 }
             });
             
             appContent.addEventListener('input', (e) => {
-                if(e.target.id === 'search-guru-input'){
-                    debounce(() => {
-                        currentGuruSearch = e.target.value;
-                        renderGuruView();
+                if(e.target.id === 'search-guru-input' || e.target.id === 'search-input'){
+                    debounce(async () => {
+                        if(e.target.id === 'search-guru-input') currentGuruSearch = e.target.value;
+                        if(e.target.id === 'search-input') currentSearch = e.target.value;
+                        
+                        if(currentUser.role === 'guru') await renderGuruView();
+                        if(currentUser.role === 'siswa') {
+                            const { data } = await supabaseClient.from('tugas').select('*').eq('siswa_id', currentUser.id);
+                            renderSiswaView(data);
+                        }
                     }, 300)();
                 }
             });
             
-            // --- INISIALISASI APLIKASI ---
-            function initializeApp() {
-                loadData();
+            initializeApp();
+
+            async function initializeApp() {
                 hideLoader();
             }
-
-            initializeApp();
         });
     </script>
 </body>
