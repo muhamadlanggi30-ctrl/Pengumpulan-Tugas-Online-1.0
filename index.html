@@ -665,6 +665,29 @@
                 const targetButton = e.target.closest('button');
                 if (!targetButton) return;
                 
+                // --- PERBAIKAN BUG TOMBOL FILTER SISWA ---
+                if (targetButton.classList.contains('filter-btn')) {
+                    currentFilter = targetButton.dataset.filter;
+                    // Perbarui style tombol
+                    document.querySelectorAll('.filter-btn').forEach(btn => {
+                        btn.classList.remove('bg-white', 'text-indigo-600');
+                        btn.classList.add('text-gray-600');
+                    });
+                    targetButton.classList.add('bg-white', 'text-indigo-600');
+                    targetButton.classList.remove('text-gray-600');
+                    
+                    // Muat ulang data siswa dengan filter baru
+                    showLoader();
+                    const { data, error } = await supabaseClient.from('tugas').select('*').eq('siswa_id', currentUser.id);
+                    if (error) { 
+                        showToast('Gagal memuat tugas.', 'danger'); 
+                    } else {
+                        renderSiswaView(data);
+                    }
+                    hideLoader();
+                }
+                // --- AKHIR PERBAIKAN ---
+
                 if (targetButton.classList.contains('guru-filter-btn')) {
                     currentGuruFilter = targetButton.dataset.filter;
                     await renderGuruView();
@@ -805,4 +828,3 @@
     </script>
 </body>
 </html>
-
