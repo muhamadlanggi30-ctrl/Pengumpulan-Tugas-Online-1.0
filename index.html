@@ -4,12 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduTask - Login</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memuat Pustaka Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Memuat Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Memuat Font Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
+        /* Variabel CSS untuk tema */
         :root {
             --brand-color: #4f46e5; /* Indigo-600 */
             --background-color: #f9fafb; /* Gray-50 */
@@ -25,13 +32,16 @@
             background-color: var(--background-color);
             color: var(--text-primary);
         }
+        /* Efek bayangan halus */
         .soft-shadow {
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
         }
+        /* Fokus input */
         .form-input-group:focus-within {
             box-shadow: 0 0 0 2px var(--brand-color);
             transform: scale(1.02);
         }
+        /* Gaya tombol utama */
         .btn-primary {
             background-color: var(--brand-color);
             transition: all 0.2s ease-in-out;
@@ -55,6 +65,7 @@
         .btn-danger:hover {
             background-color: #dc2626; /* Red-600 */
         }
+        /* Animasi */
         .fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
         .fade-out-down { animation: fadeOutDown 0.5s ease-out forwards; }
         @keyframes fadeInUp {
@@ -65,10 +76,12 @@
             from { opacity: 1; transform: translateY(0); }
             to { opacity: 0; transform: translateY(10px); }
         }
+        /* Gaya tab aktif */
         .tab-active {
             color: var(--brand-color);
             border-bottom: 2px solid var(--brand-color);
         }
+        /* Animasi kerangka (skeleton) saat memuat */
         .skeleton-card::after {
             content: '';
             position: absolute;
@@ -90,6 +103,7 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+        /* Kontainer notifikasi (toast) */
         #toast-container {
             position: fixed;
             top: 1.5rem;
@@ -123,12 +137,15 @@
 </head>
 <body class="antialiased">
 
+    <!-- Indikator memuat -->
     <div id="loader" class="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-[100] hidden">
         <div class="spinner" role="status" aria-label="Memuat..."></div>
     </div>
 
+    <!-- Kontainer notifikasi -->
     <div id="toast-container"></div>
 
+    <!-- Panel Login -->
     <div id="login-panel" class="min-h-screen flex items-center justify-center p-4">
         <div class="w-full max-w-sm fade-in-up">
             <div class="text-center mb-6">
@@ -161,6 +178,7 @@
         </div>
     </div>
 
+    <!-- Kontainer Aplikasi Utama -->
     <div id="app-container" class="hidden">
         <div class="container mx-auto p-4 md:p-6 lg:p-8 max-w-7xl">
             <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
@@ -178,24 +196,24 @@
         </div>
     </div>
 
+    <!-- Latar belakang modal -->
     <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
     </div>
 
-    <script>
+    <script type="module">
         document.addEventListener('DOMContentLoaded', async () => {
             // --- KONEKSI SUPABASE ---
             // Ganti dengan URL dan Kunci Anon dari proyek Supabase Anda
-            const SUPABASE_URL = 'https://rfprtnzcyucobdxwlecx.supabase.co';
-            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmcHJ0bnpjeXVjb2JkeHdsZWN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMjY2MzQsImV4cCI6MjA3NjYwMjYzNH0.LhJGZBObLRNvL8xjfa7Onx-eKkp1XzciwkdtkMGBl-4';
-            
-            let supabaseClient; // Menggunakan nama variabel yang berbeda untuk menghindari konflik
+            const SUPABASE_URL = 'https://qpzgqjvvnavqwxtkymic.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwemdxanZ2bmF2cXd4dGt5bWljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5MDIxNjMsImV4cCI6MjA3ODQ3ODE2M30.gkwGVyTgNAPh8W9mqI45ZeQ6MbRGN1cqs-oJEEbUmDc';
+
             if (SUPABASE_URL === 'URL_PROYEK_SUPABASE_ANDA' || SUPABASE_ANON_KEY === 'KUNCI_ANON_PUBLIK_ANDA') {
-                alert('PENTING: Harap konfigurasikan URL dan Kunci Supabase Anda di dalam file HTML agar aplikasi dapat berfungsi.');
-            } else {
-                 // Inisialisasi client menggunakan objek 'supabase' dari library global
-                 const { createClient } = supabase;
-                 supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                alert('PENTING: Harap konfigurasikan URL dan Kunci Supabase Anda di dalam file HTML (baris 183-184) agar aplikasi dapat berfungsi.');
             }
+            
+            // Inisialisasi klien Supabase
+            // Kita gunakan variabel 'supabaseClient' untuk menghindari konflik nama
+            const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 
             // --- VARIABEL STATUS APLIKASI ---
@@ -225,6 +243,7 @@
             const hideLoader = () => loader.classList.add('hidden');
             const formatTanggal = dateStr => new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
+            // Fungsi untuk menampilkan notifikasi
             const showToast = (message, type = 'success') => {
                 const toast = document.createElement('div');
                 toast.className = `toast toast-${type}`;
@@ -233,6 +252,7 @@
                 setTimeout(() => { toast.remove(); }, 3000);
             };
 
+            // Fungsi untuk membuka modal
             const openModal = (modalHTML) => {
                 modalBackdrop.innerHTML = modalHTML;
                 modalBackdrop.classList.remove('hidden');
@@ -240,6 +260,7 @@
                 if (modalElement) modalElement.classList.add('fade-in-up');
             };
 
+            // Fungsi untuk menutup modal
             const closeModal = () => {
                 const modalElement = modalBackdrop.firstElementChild;
                 if (modalElement) {
@@ -251,18 +272,25 @@
                 }
             };
             
+            // Fungsi untuk menampilkan kerangka (skeleton) saat memuat
             const renderSkeleton = (count = 3) => Array(count).fill('').map(() => `<div class="relative w-full h-32 p-4 overflow-hidden bg-gray-200 rounded-2xl skeleton-card"><div class="h-6 w-3/4 bg-gray-300 rounded"></div><div class="h-4 w-1/2 bg-gray-300 rounded mt-3"></div><div class="absolute bottom-4 right-4 h-10 w-24 bg-gray-300 rounded-lg"></div></div>`).join('');
+            
+            // Fungsi untuk menampilkan status kosong
             const renderEmptyState = () => `<div class="text-center py-16 fade-in-up col-span-full"><svg class="mx-auto h-24 w-24 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 17.25v-.228a4.5 4.5 0 00-.12-1.03l-2.268-9.64a3.375 3.375 0 00-3.285-2.65H7.88a3.375 3.375 0 00-3.285 2.65l-2.268 9.64a4.5 4.5 0 00-.12 1.03v.228m15.45-1.5H6.25m15.45 0v7.5a2.25 2.25 0 01-2.25 2.25H6.25a2.25 2.25 0 01-2.25-2.25v-7.5m15.45 0l-3.281-9.375a.75.75 0 00-1.329-.302l-4.068 7.42a.75.75 0 01-1.329 0l-4.068-7.42a.75.75 0 00-1.329.302L4.5 15.75m15.45 0v.228" /></svg><h3 class="mt-4 text-lg font-medium text-gray-900">Tidak ada data ditemukan</h3><p class="mt-1 text-sm text-gray-500">Coba ubah filter atau kata kunci pencarian Anda.</p></div>`;
+            
+            // Fungsi debounce untuk menunda eksekusi (untuk pencarian)
             const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func(...args), delay); }; };
 
+            // Fungsi untuk menampilkan pratinjau file
             const generateFilePreviewHTML = (data) => {
                 const fileUrl = data.fileUrl || data.lampiranGuruUrl;
                 const fileName = data.fileName || data.lampiranGuruFilename;
-                const fileType = data.fileType || '';
                 
                 if (!fileName) return `<div class="mb-4 bg-yellow-50 text-yellow-700 text-sm p-3 rounded-lg border border-yellow-200">Tidak ada file lampiran.</div>`;
                 
-                if (fileType.startsWith('image/')) {
+                const isImage = /\.(jpg|jpeg|png|gif)$/i.test(fileName);
+                
+                if (isImage) {
                     return `<div class="mb-4">
                         <p class="text-sm font-medium text-gray-700 mb-2">Pratinjau Gambar:</p>
                         <a href="${fileUrl}" target="_blank" rel="noopener noreferrer" title="Buka gambar di tab baru">
@@ -286,30 +314,37 @@
             };
 
             // --- FUNGSI RENDER UTAMA ---
+            
+            // Memperbarui UI berdasarkan data terbaru
             async function refreshUI() {
                 if (!currentUser) return;
                 await showView(currentUser.role);
             }
 
+            // Merender tampilan untuk Siswa
             const renderSiswaView = (tugasList) => {
                 const listContainer = document.getElementById('task-list-container');
                 if (!listContainer) return;
                 
+                // Logika filter dan pencarian
                 let filteredData = tugasList.filter(t => (currentFilter === 'Semua' || t.status === currentFilter) && (!currentSearch || t.judul.toLowerCase().includes(currentSearch.toLowerCase()) || t.mapel.toLowerCase().includes(currentSearch.toLowerCase())));
                 
+                // Logika pengurutan
                 if (currentSortSiswa === 'deadline') filteredData.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
-                else if (currentSortSiswa === 'terbaru') filteredData.sort((a, b) => b.id - a.id);
+                else if (currentSortSiswa === 'terbaru') filteredData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
                 else if (currentSortSiswa === 'judul') filteredData.sort((a, b) => a.judul.localeCompare(b.judul));
 
+                // Menghasilkan HTML untuk setiap kartu tugas
                 const content = filteredData.length > 0 ? filteredData.map(tugas => {
                     const deadline = new Date(tugas.deadline);
-                    const isLate = new Date() > deadline && tugas.status !== 'Dinilai';
+                    const isLate = new Date() > deadline && tugas.status === 'Belum Dikerjakan';
                     let statusInfo;
                     switch(tugas.status) {
                         case 'Belum Dikerjakan': statusInfo = { text: 'Belum Dikerjakan', color: 'yellow', icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>` }; break;
                         case 'Terkirim': statusInfo = { text: 'Terkirim', color: 'blue', icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>` }; break;
                         case 'Dinilai': statusInfo = { text: 'Sudah Dinilai', color: 'green', icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>` }; break;
                     }
+                    // Menampilkan lampiran dari guru jika ada
                     const lampiranGuruHTML = tugas.lampiran_guru_url ? `<div class="mt-4 pt-4 border-t border-gray-100">
                         <p class="text-xs font-medium text-gray-800 mb-2">Lampiran dari Guru:</p>
                         <a href="${tugas.lampiran_guru_url}" download="${tugas.lampiran_guru_filename}" class="flex items-center space-x-2 text-sm text-indigo-700 bg-indigo-50 hover:bg-indigo-100 p-2 rounded-lg">
@@ -317,6 +352,7 @@
                             <span class="truncate">${tugas.lampiran_guru_filename}</span>
                         </a>
                     </div>` : '';
+                    
                     return `<div class="fade-in-up bg-white p-6 rounded-2xl soft-shadow flex flex-col justify-between border-t-4 ${isLate ? 'border-red-500' : 'border-indigo-500'}">
                                 <div>
                                     <div class="flex justify-between items-start mb-2"><h3 class="text-lg font-bold text-gray-800">${tugas.judul}</h3><span class="flex items-center gap-1.5 bg-${statusInfo.color}-100 text-${statusInfo.color}-800 text-xs font-medium px-2 py-1 rounded-full">${statusInfo.icon} ${statusInfo.text}</span></div>
@@ -332,9 +368,11 @@
                                 </div>
                             </div>`;
                 }).join('') : renderEmptyState();
+                
                 listContainer.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">${content}</div>`;
             };
 
+            // Merender tampilan untuk Guru
             const renderGuruView = async () => {
                 const guruContent = document.getElementById('guru-content');
                 if (!guruContent) return;
@@ -342,12 +380,14 @@
                 
                 const activeTab = document.querySelector('.guru-tab.tab-active')?.dataset.view || 'diberikan';
                 
+                // Ambil semua data tugas
                 const { data: allTugas, error } = await supabaseClient.from('tugas').select('*');
                 if (error) { showToast('Gagal memuat data tugas.', 'danger'); return; }
 
                 let contentHTML = '';
                 let headerControlsHTML = '';
 
+                // Tampilan untuk tab "Tugas Terkumpul"
                 if (activeTab === 'terkumpul') {
                     headerControlsHTML = `
                     <div class="relative w-full md:max-w-xs">
@@ -368,12 +408,12 @@
 
                     let tugasTerkumpul = allTugas.filter(t => {
                         const filterMatch = currentGuruFilter === 'Semua' ? ["Terkirim", "Dinilai"].includes(t.status) : t.status === currentGuruFilter;
-                        const searchMatch = !currentGuruSearch || t.nama_siswa.toLowerCase().includes(currentGuruSearch.toLowerCase()) || t.judul.toLowerCase().includes(currentGuruSearch.toLowerCase());
+                        const searchMatch = !currentGuruSearch || (t.nama_siswa && t.nama_siswa.toLowerCase().includes(currentGuruSearch.toLowerCase())) || t.judul.toLowerCase().includes(currentGuruSearch.toLowerCase());
                         return filterMatch && searchMatch;
                     });
                     
                     if (currentSortGuru === 'terbaru') tugasTerkumpul.sort((a, b) => new Date(b.tanggal_terkumpul) - new Date(a.tanggal_terkumpul));
-                    else if (currentSortGuru === 'nama') tugasTerkumpul.sort((a, b) => a.nama_siswa.localeCompare(b.nama_siswa));
+                    else if (currentSortGuru === 'nama') tugasTerkumpul.sort((a, b) => (a.nama_siswa || '').localeCompare(b.nama_siswa || ''));
 
                     contentHTML = `<div class="space-y-4">${tugasTerkumpul.length > 0 ? tugasTerkumpul.map(tugas => `<div class="bg-white p-5 rounded-2xl soft-shadow"><div class="flex flex-col md:flex-row justify-between items-start">
                         <div class="flex-grow">
@@ -384,7 +424,9 @@
                             ${tugas.status === 'Terkirim' ? `<span class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-1 rounded-full">Perlu Diperiksa</span><button data-id='${JSON.stringify(tugas)}' class="btn-komentar px-5 py-2 bg-green-600 text-white text-sm font-medium rounded-xl">Periksa</button>` : `<div class="text-right flex items-center space-x-3"><p class="text-3xl font-bold text-green-600">${tugas.nilai}</p><button data-id='${JSON.stringify(tugas)}' class="btn-komentar text-xs px-3 py-1.5 bg-gray-100 rounded-md">Ubah</button></div>`}
                         </div>
                     </div></div>`).join('') : renderEmptyState()}</div>`;
-                } else { // activeTab === 'diberikan'
+                
+                // Tampilan untuk tab "Tugas yang Diberikan"
+                } else { 
                     const groupedTugas = allTugas.reduce((acc, tugas) => {
                         const key = `${tugas.judul}|${tugas.mapel}|${tugas.deadline}`;
                         if (!acc[key]) acc[key] = { ...tugas, siswa: [] };
@@ -416,6 +458,7 @@
                 guruContent.innerHTML = headerHTML + contentHTML;
             };
             
+            // Merender tampilan untuk Admin
             const renderAdminView = async () => {
                 const adminContent = document.getElementById('admin-content');
                 if (!adminContent) return;
@@ -454,6 +497,7 @@
                 }
             };
 
+            // Fungsi utama untuk menampilkan tampilan berdasarkan peran (role)
             const showView = async (role) => {
                 appContainer.classList.remove('hidden');
                 welcomeMessage.textContent = `Selamat datang, ${currentUser.nama}!`;
@@ -469,9 +513,14 @@
                     appContent.innerHTML = `<div id="tabs-container" class="flex border-b mb-6 space-x-6"><button data-view="users" class="admin-tab py-3 px-1 font-semibold tab-active">Manajemen Pengguna</button><button data-view="tugas" class="admin-tab py-3 px-1 font-semibold text-gray-500">Pantau Tugas</button></div><div id="admin-content"></div>`;
                     await renderAdminView();
                 }
+                
+                // Mulai mendengarkan perubahan real-time
+                subscribeToChanges();
+                
                 hideLoader();
             };
 
+            // Menampilkan dasbor siswa
             const showSiswaDashboard = async () => {
                 currentFilter = 'Semua'; currentSearch = '';
                 appContent.innerHTML = `<div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -487,19 +536,58 @@
                     </div>
                 </div><div id="task-list-container">${renderSkeleton(4)}</div>`;
                 
+                // Ambil data tugas khusus untuk siswa ini
                 const { data, error } = await supabaseClient.from('tugas').select('*').eq('siswa_id', currentUser.id);
                 if (error) { showToast('Gagal memuat tugas.', 'danger'); return; }
                 renderSiswaView(data);
             };
 
-            // --- EVENT LISTENERS ---
+            // --- FUNGSI REALTIME SUPABASE ---
+            
+            // Berhenti mendengarkan semua perubahan
+            const unsubscribeAll = () => {
+                supabaseClient.removeAllChannels();
+            };
+            
+            // Mulai mendengarkan perubahan
+            const subscribeToChanges = () => {
+                // Pastikan untuk menghapus listener lama sebelum menambah yang baru
+                unsubscribeAll();
+                
+                let channelName = 'public:*'; // Admin mendengarkan semua
+                if(currentUser.role === 'guru') channelName = 'public:tugas'; // Guru mendengarkan tabel tugas
+                if(currentUser.role === 'siswa') channelName = `public:tugas:siswa_id=eq.${currentUser.id}`; // Siswa hanya mendengarkan tugas miliknya
+                
+                const channel = supabaseClient.channel(channelName)
+                    .on('postgres_changes', { event: '*', schema: 'public' }, async (payload) => {
+                        console.log('Perubahan terdeteksi!', payload);
+                        // Saat ada perubahan, cukup muat ulang seluruh tampilan
+                        // Ini adalah cara sederhana untuk memastikan data selalu sinkron
+                        await refreshUI();
+                    })
+                    .subscribe((status, err) => {
+                        if (status === 'SUBSCRIBED') {
+                            console.log(`Berhasil terhubung ke realtime channel: ${channelName}`);
+                        }
+                        if (status === 'CHANNEL_ERROR') {
+                            console.error('Koneksi realtime gagal:', err);
+                        }
+                    });
+            };
+            
+
+            // --- EVENT LISTENERS (Pengendali Aksi Pengguna) ---
+            
+            // Aksi saat form login disubmit
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 showLoader();
                 const username = e.target.username.value;
                 const password = e.target.password.value;
                 
-                const { data, error } = await supabaseClient.from('profiles').select('*').eq('username', username).eq('password', password).single();
+                // Mencocokkan username dan password di tabel 'profiles'
+                // PERUBAHAN: Menggunakan .ilike() untuk username agar tidak mempedulikan huruf besar/kecil (case-insensitive)
+                const { data, error } = await supabaseClient.from('profiles').select('*').ilike('username', username).eq('password', password).single();
 
                 if (data) {
                     currentUser = data;
@@ -516,26 +604,54 @@
                 }
             });
 
+            // Aksi saat tombol logout diklik
             logoutBtn.addEventListener('click', () => {
-                currentUser = null;
-                appContainer.classList.add('hidden');
-                loginPanel.classList.remove('hidden', 'fade-out-down');
-                loginPanel.classList.add('fade-in-up');
+                openModal(`<div class="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
+                    <svg class="mx-auto h-16 w-16 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z"></path></svg>
+                    <h3 class="text-xl font-bold mt-4">Anda yakin ingin keluar?</h3>
+                    <div class="flex justify-center space-x-4 mt-6">
+                        <button type="button" class="btn-cancel px-6 py-2.5 bg-gray-200 rounded-xl">Batal</button>
+                        <button type="button" id="btn-confirm-logout" class="btn-danger px-6 py-2.5 rounded-xl">Ya, Keluar</button>
+                    </div>
+                </div>`);
             });
 
+            // Aksi di dalam modal
             modalBackdrop.addEventListener('click', async (e) => {
                  if (e.target.closest('.btn-cancel') || e.target === modalBackdrop) closeModal();
                 
-                 if (e.target.closest('.btn-confirm-hapus')) {
+                 if (e.target.id === 'btn-confirm-logout') {
+                    currentUser = null;
+                    unsubscribeAll(); // Hentikan listener realtime
+                    appContainer.classList.add('hidden');
+                    loginPanel.classList.remove('hidden', 'fade-out-down');
+                    loginPanel.classList.add('fade-in-up');
+                    closeModal();
+                 }
+                 
+                if (e.target.closest('.btn-confirm-hapus')) {
                     const user = JSON.parse(e.target.closest('.btn-confirm-hapus').dataset.id);
                     showLoader();
+                    
+                    // 1. Hapus semua file terkait dari Storage
+                    const { data: filesData, error: filesError } = await supabaseClient.storage.from('file_tugas').list(`tugas_siswa/${user.id}`);
+                    if (filesData && filesData.length > 0) {
+                        const filesToRemove = filesData.map(file => `tugas_siswa/${user.id}/${file.name}`);
+                        await supabaseClient.storage.from('file_tugas').remove(filesToRemove);
+                    }
+                    
+                    // 2. Hapus semua tugas terkait dari Database
                     await supabaseClient.from('tugas').delete().eq('siswa_id', user.id);
+                    
+                    // 3. Hapus pengguna
                     await supabaseClient.from('profiles').delete().eq('id', user.id);
+                    
                     closeModal();
-                    showToast(`Pengguna ${user.nama} berhasil dihapus.`, 'danger');
-                    await refreshUI();
+                    showToast(`Pengguna ${user.nama} dan semua datanya berhasil dihapus.`, 'danger');
+                    await refreshUI(); // refreshUI akan otomatis memanggil hideLoader
                 }
 
+                // Menangani submit form di dalam modal
                 const form = e.target.closest('form');
                 if(!form) return;
 
@@ -543,16 +659,20 @@
                     event.preventDefault();
                     showLoader();
                     
+                    // Form unggah tugas (Siswa)
                     if (form.id === 'unggah-form') {
                         const file = form.querySelector('#file-input').files[0];
                         const tugasId = form.dataset.id;
-                        const filePath = `tugas_siswa/${currentUser.id}-${Date.now()}-${file.name}`;
+                        const filePath = `tugas_siswa/${currentUser.id}/${Date.now()}-${file.name}`;
                         
+                        // 1. Unggah file ke Storage
                         const { error: uploadError } = await supabaseClient.storage.from('file_tugas').upload(filePath, file);
                         if (uploadError) { showToast('Gagal mengunggah file.', 'danger'); hideLoader(); return; }
                         
+                        // 2. Dapatkan URL publik file
                         const { data: { publicUrl } } = supabaseClient.storage.from('file_tugas').getPublicUrl(filePath);
 
+                        // 3. Perbarui database
                         const { error: updateError } = await supabaseClient.from('tugas').update({
                             status: 'Terkirim',
                             tanggal_terkumpul: new Date().toISOString(),
@@ -563,6 +683,7 @@
                         if (updateError) showToast('Gagal memperbarui tugas.', 'danger');
                         else showToast('Tugas berhasil diunggah!');
                     } 
+                    // Form beri nilai (Guru)
                     else if (form.id === 'komentar-form') {
                         let nilai = parseInt(form.querySelector('#nilai-input').value);
                         if (isNaN(nilai) || nilai < 0) nilai = 0;
@@ -577,6 +698,7 @@
                         if(error) showToast('Gagal menyimpan nilai.', 'danger');
                         else showToast('Nilai berhasil disimpan!');
                     } 
+                    // Form tambah pengguna (Admin)
                     else if (form.id === 'tambah-pengguna-form') {
                         const username = form.querySelector('#username-input-add').value;
                         const { data } = await supabaseClient.from('profiles').select('id').eq('username', username).single();
@@ -585,7 +707,7 @@
                             hideLoader(); return;
                         }
                         const { error } = await supabaseClient.from('profiles').insert({
-                            id: Date.now(),
+                            id: Date.now(), // ID unik sederhana
                             role: form.querySelector('#user-role-input').value,
                             nama: form.querySelector('#nama-lengkap-input').value,
                             username: username,
@@ -594,6 +716,7 @@
                         if(error) showToast('Gagal menambah pengguna.', 'danger');
                         else showToast('Pengguna baru berhasil ditambahkan!');
                     } 
+                    // Form edit pengguna (Admin)
                     else if (form.id === 'edit-pengguna-form') {
                         const user = JSON.parse(form.dataset.id);
                         const newUsername = form.querySelector('#username-edit').value;
@@ -613,6 +736,7 @@
                         if(error) showToast('Gagal memperbarui pengguna.', 'danger');
                         else showToast('Data pengguna berhasil diperbarui!');
                     } 
+                    // Form ubah password (Admin)
                     else if (form.id === 'ubah-password-form') {
                         const user = JSON.parse(form.dataset.id);
                         const { error } = await supabaseClient.from('profiles').update({
@@ -621,6 +745,7 @@
                         if(error) showToast('Gagal mengubah password.', 'danger');
                         else showToast('Password berhasil diubah!');
                     } 
+                    // Form tambah tugas (Guru)
                     else if(form.id === 'tambah-tugas-form'){
                         const lampiranFile = form.querySelector('#lampiran-tugas-input').files[0];
                         let lampiranData = {};
@@ -636,7 +761,7 @@
                         const tugasData = {
                             judul: form.querySelector('#judul-tugas-input').value,
                             mapel: form.querySelector('#mapel-tugas-input').value,
-                            deadline: new Date(form.querySelector('#deadline-tugas-input').value + 'T00:00:00'),
+                            deadline: new Date(form.querySelector('#deadline-tugas-input').value + 'T23:59:59'), // Batas waktu di akhir hari
                             status: "Belum Dikerjakan",
                             ...lampiranData
                         };
@@ -646,7 +771,7 @@
 
                         if (siswaIdOrAll === "semua") {
                             const { data: semuaSiswa } = await supabaseClient.from('profiles').select('id, nama').eq('role', 'siswa');
-                            tugasToInsert = semuaSiswa.map(siswa => ({ ...tugasData, id: Date.now() + siswa.id, siswa_id: siswa.id, nama_siswa: siswa.nama }));
+                            tugasToInsert = semuaSiswa.map((siswa, index) => ({ ...tugasData, id: Date.now() + index, siswa_id: siswa.id, nama_siswa: siswa.nama }));
                         } else {
                             const { data: siswa } = await supabaseClient.from('profiles').select('id, nama').eq('id', siswaIdOrAll).single();
                             tugasToInsert.push({ ...tugasData, id: Date.now(), siswa_id: siswa.id, nama_siswa: siswa.nama });
@@ -657,19 +782,48 @@
                         else showToast('Tugas baru berhasil dibuat!');
                     }
                     closeModal();
-                    await refreshUI();
+                    await refreshUI(); // RefreshUI akan menyembunyikan loader
                 }
             });
             
+            // Event listener untuk semua klik di dalam konten aplikasi
             appContent.addEventListener('click', async (e) => {
                 const targetButton = e.target.closest('button');
                 if (!targetButton) return;
                 
+                // --- PERBAIKAN BUG TOMBOL FILTER SISWA ---
+                if (targetButton.classList.contains('filter-btn')) {
+                    currentFilter = targetButton.dataset.filter;
+                    // Perbarui style tombol
+                    document.querySelectorAll('.filter-btn').forEach(btn => {
+                        btn.classList.remove('bg-white', 'text-indigo-600');
+                        btn.classList.add('text-gray-600');
+                    });
+                    targetButton.classList.add('bg-white', 'text-indigo-600');
+                    targetButton.classList.remove('text-gray-600');
+                    
+                    // Muat ulang data siswa dengan filter baru
+                    showLoader();
+                    const { data, error } = await supabaseClient.from('tugas').select('*').eq('siswa_id', currentUser.id);
+                    if (error) { 
+                        showToast('Gagal memuat tugas.', 'danger'); 
+                        hideLoader();
+                    } else {
+                        renderSiswaView(data);
+                        hideLoader(); // Sembunyikan loader setelah render selesai
+                    }
+                }
+                // --- AKHIR PERBAIKAN ---
+
+                // Filter dasbor Guru
                 if (targetButton.classList.contains('guru-filter-btn')) {
                     currentGuruFilter = targetButton.dataset.filter;
+                    document.querySelectorAll('.guru-filter-btn').forEach(btn => btn.classList.remove('bg-white', 'text-indigo-600'));
+                    targetButton.classList.add('bg-white', 'text-indigo-600');
                     await renderGuruView();
                 }
 
+                // Tab dasbor Guru
                 if (targetButton.classList.contains('guru-tab')) {
                     document.querySelectorAll('.guru-tab').forEach(tab => tab.classList.remove('tab-active','text-gray-500'));
                     targetButton.classList.add('tab-active');
@@ -677,12 +831,14 @@
                     await renderGuruView();
                 }
                 
+                // Tab dasbor Admin
                 if (targetButton.classList.contains('admin-tab')) {
                     document.querySelectorAll('.admin-tab').forEach(tab => tab.classList.remove('tab-active'));
                     targetButton.classList.add('tab-active');
                     await renderAdminView();
                 }
 
+                // Tombol Edit Pengguna (Admin)
                 if (targetButton.classList.contains('btn-edit-pengguna')) {
                     const user = JSON.parse(targetButton.dataset.id);
                     openModal(`<div class="bg-white rounded-2xl p-4 w-full max-w-sm">
@@ -697,12 +853,13 @@
                     </div>`);
                 }
 
+                // Tombol Hapus Pengguna (Admin)
                 if (targetButton.classList.contains('btn-hapus-pengguna')) {
                     const user = JSON.parse(targetButton.dataset.id);
                     openModal(`<div class="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
                         <svg class="mx-auto h-16 w-16 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z"></path></svg>
                         <h3 class="text-xl font-bold mt-4">Hapus Pengguna?</h3>
-                        <p class="text-gray-500 text-sm mt-2">Anda yakin ingin menghapus <b>${user.nama}</b>? Tindakan ini tidak dapat diurungkan.</p>
+                        <p class="text-gray-500 text-sm mt-2">Anda yakin ingin menghapus <b>${user.nama}</b>? Semua tugas dan file terkait akan dihapus permanen.</p>
                         <div class="flex justify-center space-x-4 mt-6">
                             <button type="button" class="btn-cancel px-6 py-2.5 bg-gray-200 rounded-xl">Batal</button>
                             <button type="button" data-id='${JSON.stringify(user)}' class="btn-confirm-hapus btn-danger px-6 py-2.5 rounded-xl">Ya, Hapus</button>
@@ -710,6 +867,7 @@
                     </div>`);
                 }
 
+                // Tombol Unggah Tugas (Siswa)
                 if (targetButton.classList.contains('btn-unggah')) {
                     openModal(`<div class="bg-white rounded-2xl p-6 w-full max-w-sm"><h3 class="text-xl font-bold mb-2">Unggah Tugas</h3><p class="text-sm text-gray-500 mb-6">Pilih file tugas untuk dikirimkan.</p><form id="unggah-form" data-id="${targetButton.dataset.id}"><label class="block w-full cursor-pointer bg-gray-50 border-2 border-dashed rounded-xl p-8 text-center"><svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg><span id="file-name-display" class="mt-2 block text-sm">Pilih file</span><input type="file" id="file-input" class="sr-only" required></label><p id="file-error" class="text-red-500 text-sm mt-2 h-4"></p><div class="flex justify-end space-x-3 mt-6"><button type="button" class="btn-cancel px-5 py-2.5 bg-gray-200 rounded-xl">Batal</button><button type="submit" class="btn-primary px-5 py-2.5 text-white rounded-xl">Kirim</button></div></form></div>`);
                     const fileInput = document.getElementById('file-input');
@@ -728,27 +886,33 @@
                         }
                     };
                 }
+                
+                // Tombol Periksa/Komentar (Guru)
                  if (targetButton.classList.contains('btn-komentar')) {
                     const tugas = JSON.parse(targetButton.dataset.id);
                     openModal(`<div class="bg-white rounded-2xl p-4 w-full max-w-sm"><h3 class="text-lg font-bold mb-1">Periksa Tugas</h3><p class="text-sm text-gray-500 mb-3">Tugas dari ${tugas.nama_siswa}</p>
                         <form id="komentar-form" data-id="${tugas.id}">
                             <div class="overflow-y-auto max-h-[50vh] pr-2">
-                                ${generateFilePreviewHTML({fileName: tugas.file_filename, fileUrl: tugas.file_url, fileType: 'image/'})}
+                                ${generateFilePreviewHTML({fileName: tugas.file_filename, fileUrl: tugas.file_url})}
                                 <div class="space-y-2">
                                     <div><label class="block text-sm font-medium">Nilai</label><input type="number" id="nilai-input" max="100" min="0" class="w-full border-gray-300 rounded-lg p-2 text-sm" value="${tugas.nilai || ''}" required></div>
-                                    <div><label class="block text-sm font-medium">Komentar</label><textarea id="komentar-input" rows="2" class="w-full border-gray-300 rounded-lg p-2 text-sm">${tugas.komentar_guru || ''}</textarea></div>
+                                    <div><label class="block text-sm font-medium">Komentar</LabeL><textarea id="komentar-input" rows="2" class="w-full border-gray-300 rounded-lg p-2 text-sm">${tugas.komentar_guru || ''}</textarea></div>
                                 </div>
                             </div>
                             <div class="flex justify-end space-x-2 mt-3 pt-3 border-t"><button type="button" class="btn-cancel px-3 py-1.5 bg-gray-200 rounded-lg text-sm">Batal</button><button type="submit" class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm">Simpan</button></div>
                         </form>
                     </div>`);
                 }
+                
+                // Tombol Lihat Tugas Terkirim (Siswa)
                 if (targetButton.classList.contains('btn-lihat-tugas')) {
                     const { data, error } = await supabaseClient.from('tugas').select('*').eq('id', targetButton.dataset.id).single();
                     if(data){
-                        openModal(`<div class="bg-white rounded-2xl p-4 w-full max-w-sm"><h3 class="text-lg font-bold mb-2">Tugas Terkirim</h3><p class="text-gray-500 text-sm mb-4">Ini file yang Anda unggah.</p>${generateFilePreviewHTML({fileName: data.file_filename, fileUrl: data.file_url, fileType: 'image/'})}<div class="flex justify-end mt-4"><button type="button" class="btn-cancel px-4 py-2 bg-gray-200 rounded-lg text-sm">Tutup</button></div></div>`);
+                        openModal(`<div class="bg-white rounded-2xl p-4 w-full max-w-sm"><h3 class="text-lg font-bold mb-2">Tugas Terkirim</h3><p class="text-gray-500 text-sm mb-4">Ini file yang Anda unggah.</p>${generateFilePreviewHTML({fileName: data.file_filename, fileUrl: data.file_url})}<div class="flex justify-end mt-4"><button type="button" class="btn-cancel px-4 py-2 bg-gray-200 rounded-lg text-sm">Tutup</button></div></div>`);
                     }
                 }
+                
+                // Tombol Ubah Password (Admin)
                 if (targetButton.classList.contains('btn-ubah-password')) {
                     const user = JSON.parse(targetButton.dataset.id);
                     openModal(`<div class="bg-white rounded-2xl p-4 w-full max-w-sm"><h3 class="text-lg font-bold mb-2">Ubah Password</h3><p class="text-gray-600 text-sm mb-4">Untuk: <span class="font-semibold">${user.nama}</span></p>
@@ -758,17 +922,22 @@
                         </form>
                     </div>`);
                 }
+                
+                // Tombol Tambah Guru/Siswa (Admin)
                 if (targetButton.id === 'btn-tambah-guru' || targetButton.id === 'btn-tambah-siswa') {
                     const role = targetButton.id === 'btn-tambah-guru' ? 'guru' : 'siswa';
                     openModal(`<div class="bg-white rounded-2xl p-4 w-full max-w-sm"><h3 class="text-lg font-bold mb-4">Tambah ${role === 'guru' ? 'Guru' : 'Siswa'}</h3><form id="tambah-pengguna-form"><input type="hidden" id="user-role-input" value="${role}"><div class="space-y-3"><div><label class="block text-sm font-medium">Nama Lengkap</label><input type="text" id="nama-lengkap-input" class="w-full border-gray-300 rounded-lg p-2.5 text-sm" required></div><div><label class="block text-sm font-medium">Username</label><input type="text" id="username-input-add" class="w-full border-gray-300 rounded-lg p-2.5 text-sm" required><p id="username-error" class="text-red-500 text-xs mt-1 h-3"></p></div><div><label class="block text-sm font-medium">Password Awal</label><input type="password" id="password-input-add" class="w-full border-gray-300 rounded-lg p-2.5 text-sm" required></div></div><div class="flex justify-end space-x-3 mt-4"><button type="button" class="btn-cancel px-4 py-2 bg-gray-200 rounded-lg text-sm">Batal</button><button type="submit" class="btn-primary px-4 py-2 text-white rounded-lg text-sm">Simpan</button></div></form></div>`);
                 }
+                
+                // Tombol Tambah Tugas (Guru)
                 if(targetButton.id === 'btn-tambah-tugas'){
                     const { data: siswaList } = await supabaseClient.from('profiles').select('id, nama').eq('role', 'siswa');
                     const siswaOptions = siswaList.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
-                    openModal(`<div class="bg-white rounded-2xl p-4 w-full max-w-sm"><h3 class="text-lg font-bold mb-3">Buat Tugas Baru</h3><form id="tambah-tugas-form"><div class="space-y-1.5"><div><label class="block text-sm font-medium">Judul Tugas</label><input type="text" id="judul-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm" required></div><div><label class="block text-sm font-medium">Mata Pelajaran</label><input type="text" id="mapel-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm" required></div><div><label class="block text-sm font-medium">Batas Waktu</label><input type="date" id="deadline-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm" required></div><div><label class="block text-sm font-medium">Tugaskan Untuk</label><select id="siswa-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm"><option value="semua">Semua Siswa</option>${siswaOptions}</select></div><div><label class="block text-sm font-medium">Lampiran</label><input type="file" id="lampiran-tugas-input" class="w-full text-sm file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 hover:file:bg-indigo-100"></div></div><div class="flex justify-end space-x-2 mt-3"><button type="button" class="btn-cancel px-3 py-1.5 text-sm bg-gray-200 rounded-lg">Batal</button><button type="submit" class="btn-primary px-3 py-1.5 text-sm text-white rounded-lg">Simpan</button></div></form></div>`);
+                    openModal(`<div class="bg-white rounded-2xl p-4 w-full max-w-sm"><h3 class="text-lg font-bold mb-3">Buat Tugas Baru</h3><form id="tambah-tugas-form"><div class="space-y-1.5"><div><label class="block text-sm font-medium">Judul Tugas</label><input type="text" id="judul-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm" required></div><div><label class="block text-sm font-medium">Mata Pelajaran</label><input type="text" id="mapel-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm" required></div><div><label class="block text-sm font-medium">Batas Waktu</label><input type="date" id="deadline-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm" required></div><div><label class="block text-sm font-medium">Tugaskan Untuk</label><select id="siswa-tugas-input" class="w-full border-gray-300 rounded-lg p-2 text-sm"><option value="semua">Semua Siswa</option>${siswaOptions}</select></div><div><label class="block text-sm font-medium">Lampiran (Opsional)</label><input type="file" id="lampiran-tugas-input" class="w-full text-sm file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 hover:file:bg-indigo-100"></div></div><div class="flex justify-end space-x-2 mt-3"><button type="button" class="btn-cancel px-3 py-1.5 text-sm bg-gray-200 rounded-lg">Batal</button><button type="submit" class="btn-primary px-3 py-1.5 text-sm text-white rounded-lg">Simpan</button></div></form></div>`);
                 }
             });
 
+            // Event listener untuk perubahan (sortir)
             appContent.addEventListener('change', async (e) => {
                 if (e.target.id === 'sort-siswa') {
                     currentSortSiswa = e.target.value;
@@ -781,6 +950,7 @@
                 }
             });
             
+            // Event listener untuk input (pencarian)
             appContent.addEventListener('input', (e) => {
                 if(e.target.id === 'search-guru-input' || e.target.id === 'search-input'){
                     debounce(async () => {
@@ -798,7 +968,9 @@
             
             initializeApp();
 
+            // Fungsi inisialisasi aplikasi
             async function initializeApp() {
+                // Untuk aplikasi sederhana ini, kita selalu mulai dari halaman login
                 hideLoader();
             }
         });
